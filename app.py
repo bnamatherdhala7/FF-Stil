@@ -255,13 +255,15 @@ def render_sidebar():
         targets = sig.get("export_targets", [])
         notes = sig.get("notes", "")
 
+        filter_style = sig.get("filter_style", "")
+        tone_display = filter_style.capitalize() if filter_style and filter_style != "none" else (tone.capitalize() if tone != "—" else "—")
         rows = "".join([
             f'<div style="display:flex;justify-content:space-between;padding:0.45rem 0;'
             f'border-bottom:1px solid #F0F0F6;font-size:12px;">'
             f'<span style="color:#AAABB8;font-weight:500;">{k}</span>'
             f'<span style="color:#111124;font-weight:400;">{v}</span></div>'
             for k, v in [
-                ("Tone", tone.capitalize() if tone != "—" else "—"),
+                ("Style", tone_display),
                 ("Crop", crop.capitalize() if crop != "—" else "—"),
                 ("Export", ", ".join(targets) if targets else "—"),
             ]

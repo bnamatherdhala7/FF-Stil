@@ -80,13 +80,21 @@ def build_system_prompt(memory: dict) -> str:
     base = SYSTEM_PROMPT
     if memory.get("style_signature"):
         sig = memory["style_signature"]
-        memory_block = f"""
-User style profile (apply these preferences unless told otherwise):
-- Tone: {sig.get('tone', 'not set')}
-- Crop preference: {sig.get('crop_preference', 'not set')}
-- Export targets: {', '.join(sig.get('export_targets', []))}
-- Notes: {sig.get('notes', 'none')}"""
-        return base + memory_block
+        lines = []
+        if sig.get("filter_style") and sig["filter_style"] != "none":
+            lines.append(f"- Preferred filter: {sig['filter_style']} (their last explicit choice)")
+        elif sig.get("tone"):
+            lines.append(f"- Tone: {sig['tone']}")
+        if sig.get("crop_preference") and sig["crop_preference"] != "none":
+            lines.append(f"- Crop: {sig['crop_preference']}")
+        targets = sig.get("export_targets", [])
+        if targets:
+            lines.append(f"- Export targets: {', '.join(targets)}")
+        if sig.get("notes"):
+            lines.append(f"- Aesthetic: {sig['notes']}")
+        if lines:
+            memory_block = "\n\nUser style profile (apply unless the user says otherwise):\n" + "\n".join(lines)
+            return base + memory_block
     return base
 
 
@@ -263,13 +271,22 @@ def extract_and_save_style(session_log: list, existing_style: dict = None) -> di
     ])
 
     prompt = f"""From this creative editing session, extract the user's style preferences.
+Focus on what the user EXPLICITLY requested in this session — their latest request overrides earlier ones.
+
 Return ONLY valid JSON, no other text:
 {{
   "tone": "warm|cool|neutral",
-  "crop_preference": "square|landscape|portrait|none",
+  "filter_style": "warm|cool|vintage|dramatic|bw|none",
+  "crop_preference": "square|landscape|portrait|story|none",
   "export_targets": ["platform1"],
-  "notes": "one sentence summary of preferences"
+  "notes": "one sentence capturing the dominant aesthetic the user was going for"
 }}
+
+Rules:
+- tone: the colour temperature preference (warm=golden/orange, cool=blue/grey, neutral=balanced)
+- filter_style: the most recent explicit filter the user applied or requested — this takes priority
+- If the user changed their mind mid-session, use the LATEST preference, not the first
+- If a field is unclear from the session, omit it from the JSON (do not guess)
 
 Session:
 {log_text}"""
