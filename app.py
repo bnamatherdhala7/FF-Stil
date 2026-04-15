@@ -10,7 +10,7 @@ import os
 import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
-from agent import run_agent_streaming, load_style, extract_and_save_style, write_session_log
+from agent import run_agent_streaming, load_style, extract_and_save_style, write_session_log, update_choices_log
 from asset_library import list_assets, find_asset
 
 load_dotenv()
@@ -293,6 +293,34 @@ def render_sidebar():
             unsafe_allow_html=True
         )
 
+    # ── Choices log bar ──────────────────────────────────────────────────────
+    choices_log = memory.get("choices_log", [])
+    if choices_log:
+        st.sidebar.markdown(
+            '<hr style="border-color:#E4E4F0;margin:1rem 0 0.9rem;">'
+            '<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;'
+            'text-transform:uppercase;color:#AAABB8;margin-bottom:0.55rem;">Choices log</div>',
+            unsafe_allow_html=True
+        )
+        CHOICE_ICONS = {"filter": "◑", "crop": "⊡", "export": "↗", "brightness": "☀"}
+        for entry in choices_log[:5]:
+            ts = entry.get("ts", "")
+            pills = "".join(
+                f'<span style="display:inline-block;background:rgba(107,78,255,0.07);'
+                f'color:#6B4EFF;border:1px solid rgba(107,78,255,0.15);border-radius:20px;'
+                f'font-size:10px;padding:1px 7px;margin:0 2px 2px 0;">'
+                f'{CHOICE_ICONS.get(k, "·")} {v if k != "brightness" else (f"+{v}" if v > 0 else str(v))}'
+                f'</span>'
+                for k, v in entry.items() if k != "ts"
+            )
+            st.sidebar.markdown(
+                f'<div style="margin-bottom:0.45rem;">'
+                f'<div style="font-size:10px;color:#CCCCDA;margin-bottom:2px;">{ts}</div>'
+                f'<div style="line-height:1.8;">{pills}</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
 
 # ─── Edit Tab ─────────────────────────────────────────────────────────────────
 
@@ -536,7 +564,8 @@ def tab_agent():
             st.session_state.api_messages = new_api_messages
             if img_bytes:
                 st.session_state.session_has_image = True
-            extract_and_save_style(st.session_state.session_log, load_style())
+            updated = extract_and_save_style(st.session_state.session_log, load_style())
+            update_choices_log(session_tool_trace, updated)
             write_session_log(st.session_state.session_log, st.session_state.tool_trace)
             # Reset uploader so a new photo can be attached next turn
             st.session_state.img_cycle += 1

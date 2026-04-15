@@ -75,26 +75,79 @@ def save_style(memory: dict):
         json.dump(memory, f, indent=2)
 
 
+def update_choices_log(tool_trace: list, existing_style: dict = None) -> dict:
+    """
+    Record explicit tool choices from the session into a deterministic choices_log.
+    Ground truth — read directly from tool calls, no AI guessing.
+    Newest entry first, capped at 10.
+    """
+    style = existing_style or {}
+
+    choices = {}
+    for call in tool_trace:
+        tool = call.get("tool", "")
+        inp = call.get("input", {})
+        if tool == "apply_filter" and inp.get("filter_type"):
+            choices["filter"] = inp["filter_type"]
+        elif tool == "crop_image" and inp.get("ratio"):
+            choices["crop"] = inp["ratio"]
+        elif tool == "set_export_preset" and inp.get("platform"):
+            choices["export"] = inp["platform"]
+        elif tool == "adjust_brightness" and inp.get("level") is not None:
+            choices["brightness"] = inp["level"]
+
+    if not choices:
+        return style
+
+    choices["ts"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    log = style.get("choices_log", [])
+    log.insert(0, choices)
+    style["choices_log"] = log[:10]
+    save_style(style)
+    return style
+
+
 def build_system_prompt(memory: dict) -> str:
-    """Inject memory into system prompt if available."""
+    """
+    Inject style preferences into system prompt.
+    Priority: choices_log (deterministic, from actual tool calls) > style_signature (AI-extracted).
+    """
     base = SYSTEM_PROMPT
-    if memory.get("style_signature"):
-        sig = memory["style_signature"]
-        lines = []
-        if sig.get("filter_style") and sig["filter_style"] != "none":
-            lines.append(f"- Preferred filter: {sig['filter_style']} (their last explicit choice)")
-        elif sig.get("tone"):
-            lines.append(f"- Tone: {sig['tone']}")
-        if sig.get("crop_preference") and sig["crop_preference"] != "none":
-            lines.append(f"- Crop: {sig['crop_preference']}")
-        targets = sig.get("export_targets", [])
-        if targets:
-            lines.append(f"- Export targets: {', '.join(targets)}")
-        if sig.get("notes"):
-            lines.append(f"- Aesthetic: {sig['notes']}")
-        if lines:
-            memory_block = "\n\nUser style profile (apply unless the user says otherwise):\n" + "\n".join(lines)
-            return base + memory_block
+    sig = memory.get("style_signature") or {}
+    log = memory.get("choices_log") or []
+    recent = log[0] if log else {}
+
+    lines = []
+
+    # Filter / tone — recent log wins
+    if recent.get("filter"):
+        lines.append(f"- Preferred filter: {recent['filter']} (last used)")
+    elif sig.get("filter_style") and sig["filter_style"] != "none":
+        lines.append(f"- Preferred filter: {sig['filter_style']}")
+    elif sig.get("tone"):
+        lines.append(f"- Tone: {sig['tone']}")
+
+    # Crop — recent log wins
+    if recent.get("crop"):
+        lines.append(f"- Crop: {recent['crop']} (last used)")
+    elif sig.get("crop_preference") and sig["crop_preference"] != "none":
+        lines.append(f"- Crop: {sig['crop_preference']}")
+
+    # Export — recent log wins
+    if recent.get("export"):
+        lines.append(f"- Export for: {recent['export']} (last used)")
+    elif sig.get("export_targets"):
+        lines.append(f"- Export targets: {', '.join(sig['export_targets'])}")
+
+    # Brightness hint if last session had an explicit level
+    if recent.get("brightness") is not None:
+        lines.append(f"- Brightness adjustment: {recent['brightness']:+d} (last used)")
+
+    if sig.get("notes"):
+        lines.append(f"- Aesthetic: {sig['notes']}")
+
+    if lines:
+        return base + "\n\nUser style profile (apply unless told otherwise):\n" + "\n".join(lines)
     return base
 
 
