@@ -196,21 +196,25 @@ response is the same: portability across tools Adobe doesn't own.
 
 ## 4. MVP scope — v0.1
 
-### In scope
+### Built and shipped
 
-**Style profile**
-- Persistent `style_profile.json`: tone, crop preference, export targets, aesthetic notes
-- Auto-updated after every session via AI extraction (silent, no user action)
-- Visible and editable in the Style tab
+**Style profile — two-layer memory**
+- `style_profile.json` with two components:
+  1. `choices_log` — deterministic, written directly from tool calls (ground truth). Every `apply_filter`, `crop_image`, `set_export_preset`, `adjust_brightness` call is logged with a timestamp. Most recent entry wins in system prompt injection.
+  2. `style_signature` — AI-extracted from session conversation text. Captures tone, aesthetic mood, notes that don't surface from tool calls alone.
+- Priority in system prompt: choices_log > style_signature
+- Visible in Style tab as metric cards + choices log bar in sidebar (last 5 sessions)
 - Clear memory button resets completely
 
 **Conversational editing with vision**
 - Natural language input + optional image upload (multimodal)
+- Image persists across all turns in a session — upload once, reference across the conversation
 - Agent selects and runs editing tools: apply_filter, adjust_brightness,
   crop_image, set_export_preset, list_layers
 - Real-time tool execution trace (streaming UI with firing/done pills)
-- Images compressed automatically to fit API limits
-- Style profile injected into system prompt for returning users
+- Images automatically compressed to stay within Anthropic 5MB limit (Pillow)
+- Full Claude API conversation history passed across turns — no context loss
+- Style preferences injected into system prompt for returning users
 
 **Smart asset search**
 - Natural language brief → ranked asset recommendations
@@ -231,6 +235,14 @@ response is the same: portability across tools Adobe doesn't own.
 - Cloud sync or mobile app
 - Direct social media publishing
 - Generative image creation
+
+### Key v0.1 technical note: Lightroom integration
+The roadmap references Lightroom as a v0.3 target. Adobe's Lightroom API is
+**not publicly accessible** — it requires Adobe technology partnership. Any
+Lightroom integration path depends on Adobe internal access, not engineering
+effort. The realistic v0.3 integration targets are **Canva Apps SDK** (150M MAU,
+public API, app marketplace) and **Cloudinary** (accessible REST API). Canva
+is also the distribution channel — not just an integration target.
 
 ---
 
@@ -320,9 +332,11 @@ lifestyle, minimalist, etc.). Better onboarding flow to seed the profile
 faster on session 1.
 
 ### v0.3 — Real tool integrations
-MCP connections to real editing tools: Lightroom API, Canva API, Cloudinary.
-Stil gives structured instructions; editing happens in the user's existing tools.
-This is where the product becomes genuinely useful for daily creative work.
+Canva Apps SDK is the primary target: 150M MAU, public API, and a marketplace
+that solves the distribution problem. A Stil Canva App puts style memory in
+front of the platform creators already use daily.
+Cloudinary as secondary: accessible REST API, real image transformations.
+Lightroom requires Adobe technology partnership — not a v0.3 engineering task.
 
 ### v0.4 — Multi-brand support
 Multiple style profiles per user. Switch between client brand contexts.

@@ -8,6 +8,22 @@ and applies them automatically every session without re-explanation.
 
 ---
 
+## Screenshots
+
+### Edit — conversational editing with multimodal vision
+![Edit tab](docs/screenshots/edit_tab.png)
+
+### Style — your persistent style profile and choices log
+![Style tab](docs/screenshots/style_tab.png)
+
+### Insights — session quality grader
+![Insights tab](docs/screenshots/insights_tab.png)
+
+### Assets — natural language image search
+![Assets tab](docs/screenshots/assets_tab.png)
+
+---
+
 ## The problem in one sentence
 
 Every AI tool you open treats you like a stranger, even after years of use.
@@ -27,8 +43,9 @@ starts from zero every single session.
 |---|---|
 | **Conversational editing** | Describe what you want. Stil picks the right tools and executes. |
 | **Style memory** | Preferences extracted silently after every session. Never re-explain. |
-| **Multimodal** | Upload a photo. Stil sees the actual image and tailors its edits. |
-| **Smart asset search** | Describe what you need. Stil finds and ranks your image library. |
+| **Choices log** | Every filter, crop, and export choice is logged. Most recent wins. |
+| **Multimodal** | Upload a photo. Stil sees it and carries it across the whole conversation. |
+| **Smart asset search** | Describe what you need. Stil scores your library by keyword and AI tags. |
 | **Quality insights** | Sessions graded on tool accuracy, goal completion, and creative intent. |
 
 ---
@@ -38,7 +55,7 @@ starts from zero every single session.
 ```bash
 # 1. Clone and install
 git clone https://github.com/bnamatherdhala7/FF-Stil.git
-cd FF-Stil
+cd FF-Stil/stil
 pip install -r requirements.txt
 
 # 2. Add your API key
@@ -61,36 +78,60 @@ streamlit run app.py
 
 **First session:**
 1. Open the **Edit** tab
-2. Upload a photo (or skip — just describe the edit)
+2. Upload a photo (drag and drop or browse)
 3. Type: *"Make this warmer, crop it square, export for Instagram"*
-4. Watch Stil execute the tools in real time
-5. Your preferences are saved automatically
+   — or pick one of the sample prompt chips
+4. Watch Stil execute the tools in real time (firing → resolved pills)
+5. Your preferences are saved automatically to the sidebar
 
 **Every session after:**
-1. Type: *"Edit this photo"*
-2. Stil applies your remembered style — no re-explanation needed
+1. Upload a photo (or continue with the same one — it stays in context)
+2. Type: *"Edit this"*
+3. Stil applies your remembered style from the choices log — no re-explanation
 
-**Style tab** — see exactly what Stil knows about you. Edit or clear anytime.
+**Style tab** — see your full style profile: tone, crop, export targets, aesthetic summary.
+Raw `style_profile.json` is always visible. Clear memory anytime.
 
-**Insights tab** — run evals after a few sessions. Get a graded scorecard on
-whether Stil is serving your actual creative intent.
+**Insights tab** — run evals after a few sessions. Three-dimension graded scorecard:
+tool accuracy, goal completion, and creative intent. Plain-English health summary.
 
 **Assets tab** — search your image library in plain language:
 *"high contrast background for a social post"*
 
 ---
 
+## How style memory works
+
+```
+Session ends
+    ↓
+Two things happen in parallel:
+  1. choices_log updated — deterministic, from actual tool calls
+     (apply_filter("dramatic") → logs filter: dramatic)
+  2. style_signature updated — AI-extracted from conversation text
+
+Next session system prompt:
+  Priority 1: choices_log[0]  ← most recent explicit tool choice (ground truth)
+  Priority 2: style_signature ← AI-inferred tone/aesthetic
+```
+
+The choices log is the ground truth layer. If you switch from warm to dramatic,
+the log captures the change immediately from the tool call — no AI inference needed.
+
+---
+
 ## Architecture
 
 ```
-app.py           Streamlit UI — 4 tabs, real-time streaming tool pills
-agent.py         Agentic loop — Claude + tools + style memory + vision
+app.py             Streamlit UI — 4 tabs, real-time streaming tool pills, choices log sidebar
+agent.py           Agentic loop — Claude + tools + style memory + vision + conversation history
 creative_tools.py  5 editing functions: filter, brightness, crop, export, layers
 asset_library.py   MCP asset server — list, inspect, tag, find
-insights.py      Session grader — 3-dimension rubric + health summary
-style_profile.json  Auto-created after first session (gitignored)
-assets/          Your image library
-logs/            JSONL session logs (gitignored)
+insights.py        Session grader — 3-dimension rubric + health summary
+style_profile.json Auto-created after first session (gitignored)
+assets/            Your image library
+logs/              JSONL session logs (gitignored)
+docs/screenshots/  UI screenshots
 ```
 
 **Model usage:**
@@ -127,16 +168,18 @@ Free images at [unsplash.com](https://unsplash.com) — download, rename, drop i
 
 | Version | Focus |
 |---|---|
-| v0.1 (now) | Local prototype — style memory, conversational editing, asset search, insights |
-| v0.2 | Short-form video — extend style profile to pacing, captions, aspect ratio |
-| v0.3 | Real integrations — MCP connections to Lightroom, Canva, Cloudinary APIs |
+| v0.1 (now) | Local prototype — style memory, choices log, multimodal vision, asset search, insights |
+| v0.2 | Richer style model — colour palette extraction, mood tags, better onboarding |
+| v0.3 | Real integrations — Canva Apps SDK, Cloudinary API (Lightroom requires Adobe partnership) |
 | v0.4 | Multi-brand — multiple style profiles, client brand switching |
-| v0.5 | Web app + mobile — hosted, mobile-first UI |
+| v0.5 | Web app + mobile — hosted, Supabase storage, mobile-first UI |
 
 ---
 
 ## Contributing
 
 See [CLAUDE.md](CLAUDE.md) for the full architecture guide and development rules.
+See [PRD.md](PRD.md) for the full product requirements and strategy.
+See [COMPETITORS.md](COMPETITORS.md) for the competitive landscape analysis.
 
 Built with [Anthropic Claude](https://anthropic.com) · [Streamlit](https://streamlit.io) · [FastMCP](https://github.com/jlowin/fastmcp)
