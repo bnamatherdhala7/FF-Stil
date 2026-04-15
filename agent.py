@@ -152,24 +152,27 @@ def run_agent(user_message: str, memory: dict = None) -> tuple[str, list]:
 
 
 def run_agent_streaming(user_message: str, memory: dict = None,
-                        image_bytes: bytes = None, image_media_type: str = "image/jpeg") -> Generator:
+                        image_bytes: bytes = None, image_media_type: str = "image/jpeg",
+                        conversation_history: list = None) -> Generator:
     """
     Generator for Streamlit streaming.
     Yields dicts: {"type": "text", "content": str}
                   {"type": "tool_start", "tool": str, "input": dict}
                   {"type": "tool_end", "tool": str, "result": dict}
-                  {"type": "done", "tool_trace": list}
+                  {"type": "done", "tool_trace": list, "api_messages": list}
                   {"type": "error", "content": str}
-    Pass image_bytes + image_media_type for multimodal (vision) requests.
+
+    Pass conversation_history (prior Claude API messages) for multi-turn sessions.
+    The image from turn 1 stays in context automatically — no need to re-upload.
+    Pass image_bytes only when a new image is being introduced.
     """
     if memory is None:
         memory = load_style()
 
-    # Build first message — multimodal when image is provided
+    # Build the new user message content — multimodal if a new image is provided
     if image_bytes:
-        # Compress to stay within Anthropic's 5 MB hard limit
         image_bytes, image_media_type = _compress_image(image_bytes)
-        first_content = [
+        new_content = [
             {
                 "type": "image",
                 "source": {
@@ -181,9 +184,12 @@ def run_agent_streaming(user_message: str, memory: dict = None,
             {"type": "text", "text": user_message},
         ]
     else:
-        first_content = user_message
+        new_content = user_message
 
-    messages = [{"role": "user", "content": first_content}]
+    # Append new message to existing history (or start fresh)
+    messages = list(conversation_history) + [{"role": "user", "content": new_content}] \
+        if conversation_history else [{"role": "user", "content": new_content}]
+
     system = build_system_prompt(memory)
     tool_trace = []
 
@@ -202,7 +208,9 @@ def run_agent_streaming(user_message: str, memory: dict = None,
                     if hasattr(block, "text"):
                         for word in block.text.split(" "):
                             yield {"type": "text", "content": word + " "}
-                yield {"type": "done", "tool_trace": tool_trace}
+                # Append final assistant message so caller can persist the full history
+                messages.append({"role": "assistant", "content": response.content})
+                yield {"type": "done", "tool_trace": tool_trace, "api_messages": messages}
                 return
 
             if response.stop_reason == "tool_use":
@@ -237,7 +245,7 @@ def run_agent_streaming(user_message: str, memory: dict = None,
         yield {"type": "error", "content": f"Unexpected error: {e}"}
         return
 
-    yield {"type": "done", "tool_trace": tool_trace}
+    yield {"type": "done", "tool_trace": tool_trace, "api_messages": messages}
 
 
 def extract_and_save_style(session_log: list, existing_style: dict = None) -> dict:

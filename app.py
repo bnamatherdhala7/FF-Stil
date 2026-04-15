@@ -312,7 +312,8 @@ def tab_agent():
 
     # Init session state
     for key, default in [("messages", []), ("session_log", []), ("tool_trace", []),
-                         ("pill_cycle", 0), ("img_cycle", 0)]:
+                         ("pill_cycle", 0), ("img_cycle", 0), ("api_messages", []),
+                         ("session_has_image", False)]:
         if key not in st.session_state:
             st.session_state[key] = default
 
@@ -341,6 +342,12 @@ def tab_agent():
                 f'{round(uploaded_file.size / 1024)} KB · {uploaded_file.type}</div>',
                 unsafe_allow_html=True
             )
+    elif st.session_state.session_has_image:
+        st.markdown(
+            '<div style="font-size:11px;color:#AAABB8;padding:0.35rem 0;">'
+            '↑ Using photo from this session — upload a new one to switch</div>',
+            unsafe_allow_html=True
+        )
 
     st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
 
@@ -452,8 +459,12 @@ def tab_agent():
         current_pills_html = ""
         session_tool_trace = []
         had_error = False
+        new_api_messages = []
 
-        for event in run_agent_streaming(user_input, memory, img_bytes, img_media_type):
+        for event in run_agent_streaming(
+            user_input, memory, img_bytes, img_media_type,
+            conversation_history=st.session_state.api_messages
+        ):
             if event["type"] == "tool_start":
                 pill = (
                     f'<span style="display:inline-flex;align-items:center;gap:4px;'
@@ -510,6 +521,7 @@ def tab_agent():
 
             elif event["type"] == "done":
                 st.session_state.tool_trace.extend(event.get("tool_trace", []))
+                new_api_messages = event.get("api_messages", [])
 
         if not had_error:
             st.session_state.messages.append({
@@ -518,6 +530,10 @@ def tab_agent():
                 "tool_trace": session_tool_trace
             })
             st.session_state.session_log.append({"role": "assistant", "content": full_response})
+            # Persist full Claude API conversation history for next turn
+            st.session_state.api_messages = new_api_messages
+            if img_bytes:
+                st.session_state.session_has_image = True
             extract_and_save_style(st.session_state.session_log, load_style())
             write_session_log(st.session_state.session_log, st.session_state.tool_trace)
             # Reset uploader so a new photo can be attached next turn
@@ -595,6 +611,8 @@ def tab_memory():
     if st.button("Clear style memory", key="clear_memory"):
         if os.path.exists("style_profile.json"):
             os.remove("style_profile.json")
+        st.session_state.api_messages = []
+        st.session_state.session_has_image = False
         st.rerun()
 
 
