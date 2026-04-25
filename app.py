@@ -10,8 +10,10 @@ import os
 import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
-from agent import run_agent_streaming, load_style, extract_and_save_style, write_session_log, update_choices_log
+from agent import (run_agent_streaming, load_style, save_style, extract_and_save_style,
+                   write_session_log, update_choices_log, extract_color_palette)
 from asset_library import list_assets, find_asset
+from creative_tools import preview_edits
 
 load_dotenv()
 
@@ -293,6 +295,25 @@ def render_sidebar():
             unsafe_allow_html=True
         )
 
+    # ── Color palette ────────────────────────────────────────────────────────
+    palette = memory.get("color_palette", [])
+    if palette:
+        st.sidebar.markdown(
+            '<hr style="border-color:#E4E4F0;margin:1rem 0 0.9rem;">'
+            '<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;'
+            'text-transform:uppercase;color:#AAABB8;margin-bottom:0.55rem;">Color palette</div>',
+            unsafe_allow_html=True
+        )
+        swatches = "".join(
+            f'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;'
+            f'background:{c};margin-right:5px;border:1px solid rgba(0,0,0,0.08);"></span>'
+            for c in palette
+        )
+        st.sidebar.markdown(
+            f'<div style="display:flex;align-items:center;">{swatches}</div>',
+            unsafe_allow_html=True
+        )
+
     # ── Choices log bar ──────────────────────────────────────────────────────
     choices_log = memory.get("choices_log", [])
     if choices_log:
@@ -333,19 +354,67 @@ SAMPLE_PROMPTS = [
 
 
 def tab_agent():
-    st.markdown(
-        '<p style="font-size:13px;color:#6B6B88;margin:-0.5rem 0 1.25rem;">'
-        'Describe what you want. Stil picks the right tools and remembers your choices.'
-        '</p>',
-        unsafe_allow_html=True
-    )
+    hdr_col, btn_col = st.columns([9, 1])
+    with hdr_col:
+        st.markdown(
+            '<p style="font-size:13px;color:#6B6B88;margin:-0.5rem 0 1.25rem;">'
+            'Describe what you want. Stil picks the right tools and remembers your choices.'
+            '</p>',
+            unsafe_allow_html=True
+        )
+    with btn_col:
+        if st.button("New session", key="new_session"):
+            for k in ("messages", "session_log", "tool_trace", "api_messages"):
+                st.session_state[k] = []
+            st.session_state.session_has_image = False
+            st.session_state.last_img_bytes = None
+            st.session_state.img_cycle += 1
+            st.rerun()
 
     # Init session state
     for key, default in [("messages", []), ("session_log", []), ("tool_trace", []),
                          ("pill_cycle", 0), ("img_cycle", 0), ("api_messages", []),
-                         ("session_has_image", False)]:
+                         ("session_has_image", False), ("last_img_bytes", None)]:
         if key not in st.session_state:
             st.session_state[key] = default
+
+    # ── Onboarding card (first-time users only) ──────────────────────────────
+    if not load_style():
+        st.markdown(
+            '<div style="background:linear-gradient(135deg,#F0EEFF,#EEF5FF);border:1px solid #DDD8FF;'
+            'border-radius:12px;padding:1rem 1.25rem 0.75rem;margin-bottom:1.1rem;">'
+            '<div style="font-size:13px;font-weight:600;color:#2A1A88;margin-bottom:0.2rem;">'
+            'Seed your style profile</div>'
+            '<div style="font-size:12px;color:#6B6B88;">Answer 3 quick questions — '
+            'Stil will know your aesthetic from session one.</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
+        ob1, ob2, ob3, ob4 = st.columns([2, 2, 3, 1])
+        with ob1:
+            ob_tone = st.selectbox("Tone", ["warm", "cool", "neutral"],
+                                   key="ob_tone", label_visibility="collapsed")
+        with ob2:
+            ob_platform = st.selectbox("Platform", ["instagram", "tiktok", "both"],
+                                       key="ob_platform", label_visibility="collapsed")
+        with ob3:
+            ob_aesthetic = st.text_input("Aesthetic", placeholder="moody, minimal, vibrant…",
+                                         key="ob_aesthetic", label_visibility="collapsed")
+        with ob4:
+            if st.button("Start →", key="ob_submit"):
+                targets = ["instagram", "tiktok"] if ob_platform == "both" else [ob_platform]
+                default_crop = "story" if ob_platform == "tiktok" else "square"
+                save_style({
+                    "style_signature": {
+                        "tone": ob_tone,
+                        "filter_style": ob_tone if ob_tone != "neutral" else "none",
+                        "crop_preference": default_crop,
+                        "export_targets": targets,
+                        "notes": ob_aesthetic or f"{ob_tone} aesthetic for {ob_platform}",
+                    }
+                })
+                st.rerun()
+        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
     # ── Image uploader ──────────────────────────────────────────────────────
     st.markdown(
@@ -437,6 +506,22 @@ def tab_agent():
                     f'{msg["content"]}</div></div>',
                     unsafe_allow_html=True
                 )
+                if msg.get("preview_before_b64") and msg.get("preview_after_b64"):
+                    prev_col1, prev_col2 = st.columns(2)
+                    with prev_col1:
+                        st.markdown(
+                            '<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
+                            'text-transform:uppercase;color:#AAABB8;margin-bottom:4px;">Before</div>',
+                            unsafe_allow_html=True
+                        )
+                        st.image(base64.b64decode(msg["preview_before_b64"]), use_container_width=True)
+                    with prev_col2:
+                        st.markdown(
+                            '<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
+                            'text-transform:uppercase;color:#AAABB8;margin-bottom:4px;">After</div>',
+                            unsafe_allow_html=True
+                        )
+                        st.image(base64.b64decode(msg["preview_after_b64"]), use_container_width=True)
 
     # Chat input
     user_input = st.chat_input("What do you want to do with your photo?")
@@ -456,6 +541,7 @@ def tab_agent():
             img_bytes = uploaded_file.read()
             img_media_type = uploaded_file.type or "image/jpeg"
             img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+            st.session_state.last_img_bytes = img_bytes
 
         st.session_state.messages.append({
             "role": "user",
@@ -525,7 +611,7 @@ def tab_agent():
                     f'{current_pills_html}</div>',
                     unsafe_allow_html=True
                 )
-                session_tool_trace.append({"tool": event["tool"], "result": event["result"]})
+                session_tool_trace.append({"tool": event["tool"], "input": event.get("input", {}), "result": event["result"]})
 
             elif event["type"] == "text":
                 full_response += event["content"]
@@ -554,16 +640,37 @@ def tab_agent():
                 new_api_messages = event.get("api_messages", [])
 
         if not had_error:
-            st.session_state.messages.append({
+            # Build message dict — include before/after preview if a photo was uploaded
+            assistant_msg = {
                 "role": "assistant",
                 "content": full_response,
-                "tool_trace": session_tool_trace
-            })
+                "tool_trace": session_tool_trace,
+            }
+            if st.session_state.get("last_img_bytes"):
+                try:
+                    preview_after = preview_edits(st.session_state.last_img_bytes, session_tool_trace)
+                    if preview_after:
+                        assistant_msg["preview_before_b64"] = base64.b64encode(
+                            st.session_state.last_img_bytes).decode()
+                        assistant_msg["preview_after_b64"] = base64.b64encode(preview_after).decode()
+                except Exception:
+                    pass
+
+            st.session_state.messages.append(assistant_msg)
             st.session_state.session_log.append({"role": "assistant", "content": full_response})
             # Persist full Claude API conversation history for next turn
             st.session_state.api_messages = new_api_messages
             if img_bytes:
                 st.session_state.session_has_image = True
+                # Extract and persist color palette from the new image
+                try:
+                    palette = extract_color_palette(img_bytes)
+                    if palette:
+                        current_style = load_style()
+                        current_style["color_palette"] = palette
+                        save_style(current_style)
+                except Exception:
+                    pass
             updated = extract_and_save_style(st.session_state.session_log, load_style())
             update_choices_log(session_tool_trace, updated)
             write_session_log(st.session_state.session_log, st.session_state.tool_trace)
@@ -617,6 +724,17 @@ def tab_memory():
         st.markdown(pills, unsafe_allow_html=True)
         st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
+    if memory.get("color_palette"):
+        st.markdown(_section_label("Color palette"), unsafe_allow_html=True)
+        swatches = "".join(
+            f'<span style="display:inline-block;width:34px;height:34px;border-radius:8px;'
+            f'background:{c};margin-right:8px;border:1px solid rgba(0,0,0,0.08);"></span>'
+            for c in memory["color_palette"]
+        )
+        st.markdown(f'<div style="display:flex;align-items:center;">{swatches}</div>',
+                    unsafe_allow_html=True)
+        st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
+
     if sig.get("notes"):
         st.markdown(_section_label("Summary"), unsafe_allow_html=True)
         st.markdown(
@@ -635,6 +753,49 @@ def tab_memory():
 
     st.markdown("<hr>", unsafe_allow_html=True)
 
+    # ── Edit profile form ────────────────────────────────────────────────────
+    st.markdown(_section_label("Edit profile"), unsafe_allow_html=True)
+    tone_options = ["warm", "cool", "neutral"]
+    crop_options = ["square", "portrait", "landscape", "story", "none"]
+    platform_options = ["instagram", "tiktok", "twitter", "linkedin", "web", "print"]
+
+    tone_val = sig.get("tone", "neutral")
+    crop_val = sig.get("crop_preference", "none")
+    targets_val = sig.get("export_targets", [])
+    notes_val = sig.get("notes", "")
+
+    with st.form("edit_profile_form"):
+        ed1, ed2 = st.columns(2)
+        with ed1:
+            new_tone = st.selectbox(
+                "Tone", tone_options,
+                index=tone_options.index(tone_val) if tone_val in tone_options else 2
+            )
+            new_crop = st.selectbox(
+                "Crop", crop_options,
+                index=crop_options.index(crop_val) if crop_val in crop_options else 4
+            )
+        with ed2:
+            new_targets = st.multiselect(
+                "Export targets", platform_options,
+                default=[t for t in targets_val if t in platform_options]
+            )
+            new_notes = st.text_area("Aesthetic notes", value=notes_val, height=88)
+
+        if st.form_submit_button("Save changes"):
+            memory["style_signature"] = {
+                **(memory.get("style_signature") or {}),
+                "tone": new_tone,
+                "crop_preference": new_crop,
+                "export_targets": new_targets,
+                "notes": new_notes,
+            }
+            save_style(memory)
+            st.success("Profile updated.")
+            st.rerun()
+
+    st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
+
     with st.expander("Raw style_profile.json"):
         st.json(memory)
 
@@ -644,6 +805,7 @@ def tab_memory():
             os.remove("style_profile.json")
         st.session_state.api_messages = []
         st.session_state.session_has_image = False
+        st.session_state.last_img_bytes = None
         st.rerun()
 
 
@@ -724,6 +886,22 @@ def tab_evals():
             "Creative intent": t.get("creative_intent", 0),
         } for t in graded]).set_index("Turn")
         st.bar_chart(df, height=180, color=["#6B4EFF", "#16A34A", "#EA580C"])
+
+        # Session trend — only meaningful with 2+ sessions
+        unique_sessions = list(dict.fromkeys(t["session"] for t in graded))
+        if len(unique_sessions) > 1:
+            from collections import defaultdict
+            session_ci: dict = defaultdict(list)
+            for t in graded:
+                session_ci[t["session"]].append(t.get("creative_intent", 3))
+            trend_df = pd.DataFrame([
+                {"Session": f"S{i + 1}",
+                 "Creative intent": round(sum(session_ci[s]) / len(session_ci[s]), 1)}
+                for i, s in enumerate(unique_sessions)
+            ]).set_index("Session")
+            st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+            st.markdown(_section_label("Creative intent over sessions"), unsafe_allow_html=True)
+            st.line_chart(trend_df, height=160, color=["#6B4EFF"])
 
     if summary:
         st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)

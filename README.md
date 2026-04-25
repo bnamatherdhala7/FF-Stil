@@ -3,54 +3,55 @@
 **Your creative style, remembered.**
 
 Stil is a conversational AI assistant for content creators and brand designers.
-It learns your visual preferences — tone, crop ratios, export presets, aesthetic —
-and applies them automatically every session without re-explanation.
+Upload a photo, describe what you want, and Stil executes it — then remembers your
+choices so the next session already knows your aesthetic.
 
 ---
 
-## Screenshots
-
-### Edit — conversational editing with multimodal vision
-![Edit tab](docs/screenshots/edit_tab.png)
-
-### Style — your persistent style profile and choices log
-![Style tab](docs/screenshots/style_tab.png)
-
-### Insights — session quality grader
-![Insights tab](docs/screenshots/insights_tab.png)
-
-### Assets — natural language image search
-![Assets tab](docs/screenshots/assets_tab.png)
-
----
-
-## The problem in one sentence
+## The problem
 
 Every AI tool you open treats you like a stranger, even after years of use.
 
-You have a look. Warm tones. Square crops. Instagram exports. You've made these
-decisions hundreds of times. But Lightroom presets don't follow you to Canva.
-Canva templates don't follow you to CapCut. And every AI assistant you try
-starts from zero every single session.
+Here is what a typical creator's image editing session looks like today:
 
-**Stil is the memory layer that sits across all of it.**
+1. Open Lightroom (or Canva, or any AI tool)
+2. Apply your warm filter — *again*
+3. Crop to square — *again*
+4. Set export to 1080×1080 for Instagram — *again*
+5. Bump brightness up +20 — *again*
+
+You have done this hundreds of times. The preferences are not secret or complicated —
+warm tones, square crops, Instagram exports, slight brightness boost. You have decided
+these things already. But no tool remembers them across sessions, and no tool carries
+them across platforms.
+
+**Lightroom presets stay in Lightroom. Canva templates stay in Canva.
+Every AI assistant starts from zero every single time.**
+
+The result: 46% of a creator's working time goes to tasks like this — repetitive
+technical decisions they have already made, re-entered by hand because no tool holds
+the memory.
+
+Stil fixes this. You tell it once. It remembers forever.
 
 ---
 
-## What it does
+## What Stil does
 
-| Capability | What happens |
+| Feature | What it means for you |
 |---|---|
-| **Conversational editing** | Describe what you want. Stil picks the right tools and executes. |
-| **Style memory** | Preferences extracted silently after every session. Never re-explain. |
-| **Choices log** | Every filter, crop, and export choice is logged. Most recent wins. |
-| **Multimodal** | Upload a photo. Stil sees it and carries it across the whole conversation. |
-| **Smart asset search** | Describe what you need. Stil scores your library by keyword and AI tags. |
-| **Quality insights** | Sessions graded on tool accuracy, goal completion, and creative intent. |
+| **Conversational editing** | Say "make this warmer and crop it square" — Stil picks the right tools and runs them. No menus, no presets to configure. |
+| **Style memory** | After every session, Stil silently extracts your preferences and saves them. Next time, they're already applied. |
+| **Real image preview** | Upload a photo and see an actual before/after — filters, brightness, contrast, and crop applied using real image processing. |
+| **Choices log** | Every filter, crop, brightness, and export choice is logged. The most recent choice always wins — no AI guessing needed. |
+| **Style profile editor** | See exactly what Stil thinks your style is. Edit any field. Stil is transparent by design — no hidden magic. |
+| **Color palette extraction** | Upload an image and Stil reads your dominant colors automatically, adding them to your style profile. |
+| **Smart asset search** | Describe what you need in plain English. Stil scores your library by keyword match and AI-generated tags. |
+| **Quality insights** | Every session is graded on three dimensions: tool accuracy, goal completion, and creative intent — the one that actually matters. |
 
 ---
 
-## Setup (5 minutes)
+## Quick start (5 minutes)
 
 ```bash
 # 1. Clone and install
@@ -58,14 +59,14 @@ git clone https://github.com/bnamatherdhala7/FF-Stil.git
 cd FF-Stil/stil
 pip install -r requirements.txt
 
-# 2. Add your API key
+# 2. Add your Anthropic API key
 cp .env.example .env
-# Open .env and paste your Anthropic API key
-# Get one at: https://console.anthropic.com
+# Edit .env and paste your key: ANTHROPIC_API_KEY=sk-ant-...
+# Get a key at: https://console.anthropic.com
 
-# 3. Add some photos to assets/ (optional)
-# Download free images from unsplash.com
-# Name them descriptively: portrait_warm_natural_light.jpg
+# 3. (Optional) Add photos to assets/
+# Free images at unsplash.com — name them descriptively:
+# portrait_warm_natural_light.jpg, dark_high_contrast_abstract_bg.jpg
 
 # 4. Run
 streamlit run app.py
@@ -76,103 +77,146 @@ streamlit run app.py
 
 ## How to use it
 
-**First session:**
+### First session — building your profile
+
 1. Open the **Edit** tab
-2. Upload a photo (drag and drop or browse)
-3. Type: *"Make this warmer, crop it square, export for Instagram"*
-   — or pick one of the sample prompt chips
-4. Watch Stil execute the tools in real time (firing → resolved pills)
-5. Your preferences are saved automatically to the sidebar
+2. If it is your first time, fill in the **style seed card** — tone, platform, and one
+   word that describes your aesthetic (e.g. "moody"). This gives Stil a starting point
+   before any conversation.
+3. Upload a photo — Stil extracts your dominant color palette automatically
+4. Type what you want: *"Apply a warm filter, bump brightness +20, crop square,
+   export for Instagram"*
+5. Watch the tool pills fire in real time as each action executes
+6. A **before/after preview** appears showing the actual edit applied to your photo
+7. Your choices are saved to the sidebar — that is your style profile updating live
 
-**Every session after:**
-1. Upload a photo (or continue with the same one — it stays in context)
-2. Type: *"Edit this"*
-3. Stil applies your remembered style from the choices log — no re-explanation
+### Every session after — no re-explanation needed
 
-**Style tab** — see your full style profile: tone, crop, export targets, aesthetic summary.
-Raw `style_profile.json` is always visible. Clear memory anytime.
+1. Upload a new photo (or skip — Stil keeps the previous one in context)
+2. Type: *"Edit this for my Instagram"*
+3. Stil reads your choices log and applies your remembered aesthetic without asking
 
-**Insights tab** — run evals after a few sessions. Three-dimension graded scorecard:
-tool accuracy, goal completion, and creative intent. Plain-English health summary.
+### Style tab — your profile, always visible and editable
 
-**Assets tab** — search your image library in plain language:
-*"high contrast background for a social post"*
+- See your tone, crop preference, export targets, color palette, and aesthetic summary
+- **Edit any field directly** — Stil does not lock you out of your own profile
+- Raw `style_profile.json` is always visible in an expander
+- Clear memory at any time with one button
+
+### Insights tab — is Stil actually serving you?
+
+- Click **Run evals** after a few sessions
+- Three scores: tool accuracy (did it use the right tools?), goal completion (did it
+  finish the task?), and **creative intent** (did the output serve what you actually wanted?)
+- Creative intent is the score that matters — a session can score 5/5 on completion
+  and 1/5 on intent if it did exactly what you typed but missed the creative purpose
+- After 2+ sessions: a **trend chart** shows whether creative intent improves over time
+  as your profile matures
+
+### Assets tab — find the right photo fast
+
+Search your image library in plain language: *"high contrast background for a social post"*
+Stil returns ranked results with thumbnails, AI-generated tags, and a rationale for each match.
 
 ---
 
 ## How style memory works
 
 ```
-Session ends
-    ↓
-Two things happen in parallel:
-  1. choices_log updated — deterministic, from actual tool calls
-     (apply_filter("dramatic") → logs filter: dramatic)
-  2. style_signature updated — AI-extracted from conversation text
+You finish a session
+        ↓
+Two things happen:
 
-Next session system prompt:
-  Priority 1: choices_log[0]  ← most recent explicit tool choice (ground truth)
-  Priority 2: style_signature ← AI-inferred tone/aesthetic
+  1. choices_log updated (deterministic — ground truth)
+     apply_filter("warm") → logs  filter: warm
+     crop_image("square")  → logs  crop: square
+     Most recent entry always wins in the next session's system prompt.
+
+  2. style_signature updated (AI-extracted)
+     Haiku reads the conversation and extracts tone, aesthetic notes,
+     export targets — things that don't surface from tool calls alone.
+
+Next session:
+  Priority 1 → choices_log (what you actually did last time)
+  Priority 2 → style_signature (what Stil inferred about your taste)
 ```
 
-The choices log is the ground truth layer. If you switch from warm to dramatic,
-the log captures the change immediately from the tool call — no AI inference needed.
+The choices log is the ground truth. If you switch from warm to dramatic filters,
+that change is captured immediately from the tool call — no AI inference, no drift.
+
+---
+
+## Editing tools available
+
+| Tool | What it does |
+|---|---|
+| `apply_filter` | warm, cool, vintage, dramatic, soft, vivid, bw |
+| `adjust_brightness` | −100 (darker) to +100 (brighter) |
+| `adjust_contrast` | −100 (flat) to +100 (high contrast) |
+| `crop_image` | square, portrait, landscape, story, tiktok, wide |
+| `set_export_preset` | instagram, tiktok, reels, twitter, linkedin, web, print |
+| `list_layers` | inspect the layer stack |
+
+All edits produce a real before/after preview using Pillow image processing.
 
 ---
 
 ## Architecture
 
 ```
-app.py             Streamlit UI — 4 tabs, real-time streaming tool pills, choices log sidebar
+app.py             Streamlit UI — 4 tabs, streaming tool pills, before/after preview
 agent.py           Agentic loop — Claude + tools + style memory + vision + conversation history
-creative_tools.py  5 editing functions: filter, brightness, crop, export, layers
-asset_library.py   MCP asset server — list, inspect, tag, find
-insights.py        Session grader — 3-dimension rubric + health summary
+creative_tools.py  6 editing tools + PIL preview rendering
+asset_library.py   MCP asset server — list, inspect, AI-tag, find
+insights.py        Session grader — 3-dimension rubric, trend chart, health summary
 style_profile.json Auto-created after first session (gitignored)
-assets/            Your image library
+assets/            Your image library (descriptive filenames = search index)
 logs/              JSONL session logs (gitignored)
-docs/screenshots/  UI screenshots
 ```
 
-**Model usage:**
+**Model usage — all Haiku, all cheap:**
 
-| Task | Model | Why |
+| Task | Model | Approx. cost |
 |---|---|---|
-| Agent loop | claude-haiku-4-5 | Fast, cheap, responsive |
-| Style extraction | claude-haiku-4-5 | Tiny structured prompt |
-| Insights grading | claude-haiku-4-5 | One call per turn |
-| Asset tagging | claude-haiku-4-5 | Cached — never re-run |
+| Agent loop (per session) | claude-haiku-4-5 | ~$0.01 |
+| Style extraction (per session) | claude-haiku-4-5 | ~$0.002 |
+| Insights grading (per turn) | claude-haiku-4-5 | ~$0.003 |
+| Asset tagging (one-time per image) | claude-haiku-4-5 | ~$0.001 |
 
-Target cost: **< $0.05 per user per day** at moderate usage.
+Target: **< $0.05 per user per day.** Color palette extraction uses Pillow only — no API call.
 
 ---
 
 ## Asset naming convention
 
-The filename is the search index. No database, no embeddings.
+The filename is the search index. No database, no vector embeddings.
 
 ```
-portrait_warm_natural_light.jpg
-dark_high_contrast_abstract_bg.jpg
-soft_pastel_gradient_bg.jpg
-warm_golden_hour_outdoor.jpg
-bright_colorful_flat_lay.jpg
+portrait_warm_natural_light.jpg      →  "warm portrait natural light"
+dark_high_contrast_abstract_bg.jpg   →  "high contrast background social post"
+soft_pastel_gradient_bg.jpg          →  "soft pastel social media"
+warm_golden_hour_outdoor.jpg         →  "warm golden hour lifestyle"
+bright_colorful_flat_lay.jpg         →  "vibrant colorful product flat lay"
 ```
 
-Words in the filename match natural creative briefs.
-Free images at [unsplash.com](https://unsplash.com) — download, rename, drop in.
+Words in the filename match the way you'd describe the photo in a creative brief.
+Free images at [unsplash.com](https://unsplash.com) — download, rename descriptively, drop in `assets/`.
 
 ---
 
 ## Roadmap
 
-| Version | Focus |
-|---|---|
-| v0.1 (now) | Local prototype — style memory, choices log, multimodal vision, asset search, insights |
-| v0.2 | Richer style model — colour palette extraction, mood tags, better onboarding |
-| v0.3 | Real integrations — Canva Apps SDK, Cloudinary API (Lightroom requires Adobe partnership) |
-| v0.4 | Multi-brand — multiple style profiles, client brand switching |
-| v0.5 | Web app + mobile — hosted, Supabase storage, mobile-first UI |
+| Version | Focus | Status |
+|---|---|---|
+| v0.1 | Style memory, choices log, multimodal vision, real filter preview, onboarding, style editor, color palette, insights | **Shipped** |
+| v0.2 | Mood tags, session comparison, export style brief PDF | Next |
+| v0.3 | Real tool integrations — Canva Apps SDK, Cloudinary API | Planned |
+| v0.4 | Multi-brand — multiple style profiles, client brand switching | Planned |
+| v0.5 | Web app + mobile — hosted, database-backed, mobile-first UI | Planned |
+
+> **Note on Lightroom:** Adobe's Lightroom API requires an Adobe technology partnership
+> and is not publicly accessible. v0.3 integration targets are Canva (public API,
+> 150M MAU) and Cloudinary (accessible REST API).
 
 ---
 
@@ -180,6 +224,6 @@ Free images at [unsplash.com](https://unsplash.com) — download, rename, drop i
 
 See [CLAUDE.md](CLAUDE.md) for the full architecture guide and development rules.
 See [PRD.md](PRD.md) for the full product requirements and strategy.
-See [COMPETITORS.md](COMPETITORS.md) for the competitive landscape analysis.
+See [COMPETITORS.md](COMPETITORS.md) for the competitive landscape.
 
-Built with [Anthropic Claude](https://anthropic.com) · [Streamlit](https://streamlit.io) · [FastMCP](https://github.com/jlowin/fastmcp)
+Built with [Anthropic Claude](https://anthropic.com) · [Streamlit](https://streamlit.io) · [FastMCP](https://github.com/jlowin/fastmcp) · [Pillow](https://python-pillow.org)

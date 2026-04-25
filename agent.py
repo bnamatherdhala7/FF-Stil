@@ -60,6 +60,21 @@ def _compress_image(image_bytes: bytes, max_bytes: int = 4_500_000) -> tuple[byt
     return buf.getvalue(), "image/jpeg"
 
 
+def extract_color_palette(image_bytes: bytes) -> list:
+    """Extract up to 5 dominant colors from image bytes. Returns hex strings."""
+    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    img = img.resize((100, 100), Image.LANCZOS)
+    quantized = img.quantize(colors=8)
+    palette_data = quantized.getpalette()
+    colors = []
+    for i in range(0, 24, 3):  # 8 colors × 3 channels
+        r, g, b = palette_data[i], palette_data[i + 1], palette_data[i + 2]
+        brightness = (r + g + b) / 3
+        if 20 < brightness < 240:  # skip near-black and near-white
+            colors.append(f"#{r:02x}{g:02x}{b:02x}")
+    return colors[:5]
+
+
 def load_style() -> dict:
     """Load user style profile from style_profile.json."""
     if os.path.exists(MEMORY_FILE):
@@ -286,7 +301,7 @@ def run_agent_streaming(user_message: str, memory: dict = None,
                             "input": block.input,
                             "result": result_dict
                         })
-                        yield {"type": "tool_end", "tool": block.name, "result": result_dict}
+                        yield {"type": "tool_end", "tool": block.name, "result": result_dict, "input": block.input}
                         tool_results.append({
                             "type": "tool_result",
                             "tool_use_id": block.id,
