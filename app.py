@@ -11,7 +11,7 @@ import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
 from agent import (run_agent_streaming, load_style, save_style, extract_and_save_style,
-                   write_session_log, update_choices_log, extract_color_palette)
+                   write_session_log, update_choices_log, extract_color_palette, extract_exif)
 from asset_library import list_assets, find_asset
 from creative_tools import preview_edits
 
@@ -282,16 +282,28 @@ def render_sidebar():
                 unsafe_allow_html=True
             )
         updated = memory.get("last_updated", "")
+        edit_count = len(memory.get("choices_log", []))
+        meta_parts = []
         if updated:
+            meta_parts.append(f"Updated {updated[:16]}")
+        if edit_count:
+            meta_parts.append(f"built from {edit_count} edit{'s' if edit_count != 1 else ''}")
+        if meta_parts:
             st.sidebar.markdown(
                 f'<div style="font-size:10px;color:#CCCCDA;margin-top:0.5rem;">'
-                f'Updated {updated[:16]}</div>',
+                f'{" · ".join(meta_parts)}</div>',
                 unsafe_allow_html=True
             )
     else:
         st.sidebar.markdown(
-            '<div style="font-size:12px;color:#AAABB8;line-height:1.6;">'
-            'No profile yet.<br>Chat to build one automatically.</div>',
+            '<div style="font-size:11px;color:#AAABB8;line-height:2.0;">'
+            '<span style="color:#6B4EFF;font-weight:600;">①</span>'
+            '&nbsp;Upload a photo and describe your edit<br>'
+            '<span style="color:#6B4EFF;font-weight:600;">②</span>'
+            '&nbsp;Stil executes and saves your choices<br>'
+            '<span style="color:#6B4EFF;font-weight:600;">③</span>'
+            '&nbsp;Next session, your style is already applied'
+            '</div>',
             unsafe_allow_html=True
         )
 
@@ -374,9 +386,53 @@ def tab_agent():
     # Init session state
     for key, default in [("messages", []), ("session_log", []), ("tool_trace", []),
                          ("pill_cycle", 0), ("img_cycle", 0), ("api_messages", []),
-                         ("session_has_image", False), ("last_img_bytes", None)]:
+                         ("session_has_image", False), ("last_img_bytes", None),
+                         ("style_just_saved", False)]:
         if key not in st.session_state:
             st.session_state[key] = default
+
+    # ── Style saved confirmation (shows once after a completed session) ───────
+    if st.session_state.style_just_saved:
+        st.session_state.style_just_saved = False
+        st.markdown(
+            '<div style="background:#F0FFF4;border:1px solid #BBF7D0;border-radius:8px;'
+            'padding:0.5rem 1rem;margin-bottom:0.75rem;font-size:12px;color:#166534;">'
+            '✓ Style profile updated — your choices from this session are saved.</div>',
+            unsafe_allow_html=True
+        )
+
+    # ── Style active banner (returning users with a profile) ─────────────────
+    _style = load_style()
+    _log = _style.get("choices_log", [])
+    _sig = _style.get("style_signature", {})
+    if _log or _sig:
+        _recent = _log[0] if _log else {}
+        _prefs = []
+        if _recent.get("filter"):
+            _prefs.append(_recent["filter"])
+        elif _sig.get("tone") and _sig["tone"] not in ("neutral", "—"):
+            _prefs.append(_sig["tone"])
+        if _recent.get("crop"):
+            _prefs.append(_recent["crop"])
+        if _recent.get("export"):
+            _prefs.append(_recent["export"])
+        elif _sig.get("export_targets"):
+            _prefs += _sig["export_targets"][:1]
+        _prefs_text = " · ".join(_prefs[:3]) if _prefs else "your aesthetic"
+        _count_text = f"built from {len(_log)} edit{'s' if len(_log) != 1 else ''}" if _log else ""
+        st.markdown(
+            f'<div style="background:linear-gradient(135deg,#F5F3FF,#EEF5FF);'
+            f'border:1px solid #DDD8FF;border-radius:10px;padding:0.6rem 1rem;'
+            f'margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;">'
+            f'<div style="display:flex;align-items:center;gap:8px;">'
+            f'<span style="color:#6B4EFF;font-size:13px;">✦</span>'
+            f'<span style="font-size:12px;font-weight:600;color:#2A1A88;">Style active</span>'
+            f'<span style="font-size:12px;color:#6B6B88;margin-left:2px;">{_prefs_text}</span>'
+            f'</div>'
+            f'<span style="font-size:10px;color:#AAABB8;">{_count_text}</span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
     # ── Onboarding card (first-time users only) ──────────────────────────────
     if not load_style():
@@ -662,18 +718,26 @@ def tab_agent():
             st.session_state.api_messages = new_api_messages
             if img_bytes:
                 st.session_state.session_has_image = True
-                # Extract and persist color palette from the new image
+                current_style = load_style()
+                # Extract color palette
                 try:
                     palette = extract_color_palette(img_bytes)
                     if palette:
-                        current_style = load_style()
                         current_style["color_palette"] = palette
-                        save_style(current_style)
                 except Exception:
                     pass
+                # Extract EXIF camera profile
+                try:
+                    exif = extract_exif(img_bytes)
+                    if exif:
+                        current_style["camera_profile"] = exif
+                except Exception:
+                    pass
+                save_style(current_style)
             updated = extract_and_save_style(st.session_state.session_log, load_style())
             update_choices_log(session_tool_trace, updated)
             write_session_log(st.session_state.session_log, st.session_state.tool_trace)
+            st.session_state.style_just_saved = True
             # Reset uploader so a new photo can be attached next turn
             st.session_state.img_cycle += 1
             st.rerun()
@@ -733,6 +797,28 @@ def tab_memory():
         )
         st.markdown(f'<div style="display:flex;align-items:center;">{swatches}</div>',
                     unsafe_allow_html=True)
+        st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
+
+    camera = memory.get("camera_profile", {})
+    if camera:
+        st.markdown(_section_label("Camera profile"), unsafe_allow_html=True)
+        cam_rows = "".join([
+            f'<div style="display:flex;justify-content:space-between;padding:0.4rem 0;'
+            f'border-bottom:1px solid #F0F0F6;font-size:12px;">'
+            f'<span style="color:#AAABB8;font-weight:500;">{k.replace("_", " ").capitalize()}</span>'
+            f'<span style="color:#111124;">{v}</span></div>'
+            for k, v in camera.items()
+        ])
+        st.markdown(
+            f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:10px;'
+            f'padding:0.2rem 0.85rem 0.4rem;">{cam_rows}</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            '<div style="font-size:11px;color:#AAABB8;margin-top:0.4rem;line-height:1.5;">'
+            'Extracted from image EXIF — informs editing recommendations.</div>',
+            unsafe_allow_html=True
+        )
         st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
     if sig.get("notes"):

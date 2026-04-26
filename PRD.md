@@ -1,6 +1,6 @@
 # Stil — Product Requirements Document
 
-**Version:** 0.3 (updated post-v0.1 ship)
+**Version:** 0.4 (updated post-v0.1 ship)
 **Status:** Active
 **Last updated:** April 2026
 
@@ -34,27 +34,33 @@ in their workflows (Artlist, 2025, n=6,500).
 
 ### 1.2 The specific problem with image editing today
 
-A creator with a warm, high-contrast, square-cropped Instagram aesthetic goes through
-the same sequence of decisions every single time they edit a photo:
+A creator posts 3–5 times a week. That is 200+ pieces of content a year. Here is what
+every single editing session looks like, regardless of which tool they open:
 
 1. **Open their tool of choice** (Lightroom, Canva, CapCut, or an AI assistant)
 2. **Re-select their warm filter** — the same one they chose last time, and the time before
 3. **Re-crop to square** — every portrait needs this for Instagram
 4. **Re-enter their export settings** — 1080×1080, JPEG, sRGB, 85% quality
 5. **Re-adjust brightness** — they always go +20 for their style
-6. **Repeat this across every photo, every session, every tool**
+6. **Repeat this for every photo, every session, across every tool**
 
-None of these are creative decisions anymore. They were decided months ago. But every
-tool starts from zero because no tool holds the memory.
+None of these are creative decisions. They were decided months ago. But every tool
+starts from zero because no tool holds the memory.
 
-**This is not an editing speed problem. It is a memory problem.**
+**This is not an editing speed problem. It is a consistency problem.**
 
-The editing itself — clicking a filter, dragging a slider — takes seconds. The overhead
-is the cognitive load of re-specifying preferences you have already finalized, in every
-tool, every session, indefinitely.
+The deeper consequence is visual drift. Post 1 looks exactly like the creator.
+Post 47 is close. Post 180 barely is — not because their aesthetic changed, but because
+200 micro-decisions made under time pressure, across three different tools, with varying
+energy levels, slowly diverge from the original creative intent.
+
+The creator does not notice it happening turn by turn. They notice it six months later
+when their feed no longer looks like theirs.
 
 **46% of a creator's working time goes to tasks other than content creation** —
 formatting, distribution, and exactly this kind of repetitive technical re-entry.
+Re-explaining style to AI tools is a measurable slice of this. The cumulative drift
+it produces is the real cost.
 
 ### 1.3 Why existing tools do not solve this
 
@@ -145,7 +151,21 @@ Conversational interfaces solve this in two ways:
 - **Low friction:** "Make this warmer and crop it square" is how creators already
   think. Translating that into a menu is the friction Stil removes.
 
-### 2.4 Transparency as a trust mechanism
+### 2.4 How Stil differs from traditional AI chat
+
+| Dimension | Traditional AI chat | Stil |
+|---|---|---|
+| **Context** | Forgotten after the session | Persists across sessions — style profile updates after every edit |
+| **Input** | Manual prompting every time | Automatic style extraction from conversation + EXIF metadata from image |
+| **Execution** | "Here is advice on how to edit" | "I've applied your style — here is the before/after" |
+| **Consistency** | Visual drift across 200 posts | Deterministic style alignment — choices log is ground truth, not AI inference |
+| **Feedback** | No signal on whether it served the creative goal | Creative intent scored every session; trend chart shows improvement over time |
+
+The consistency row is the one that matters most for the creator problem. The other rows
+are table stakes for a good AI tool. Deterministic brand alignment across hundreds of
+posts — enforced by a choices log that never drifts — is what Stil uniquely provides.
+
+### 2.5 Transparency as a trust mechanism
 
 The style profile is always visible in the sidebar and Style tab. Users see exactly
 what Stil thinks they like. They can edit any field directly — tone, crop preference,
@@ -215,12 +235,31 @@ cannot inspect or correct. Transparency is how Stil earns trust, not magic.
 ### Onboarding
 
 - First-time users see a 3-field seed card: tone, primary platform, one aesthetic word
-- Seeds the style profile before any conversation, so session 1 is already personalised
+- Seeds the style profile before any conversation so session 1 is already personalised
+- Sidebar shows a 3-step explainer on first visit: upload → Stil saves → next session it applies
+
+### Value prop UX — making the memory loop visible
+
+The memory loop only creates trust if users can see it working. Three moments make it visible:
+
+1. **✦ Style active banner** — top of the Edit tab every return session, listing the exact
+   preferences that are loaded (warm · square · instagram) and how many edits built the profile.
+   Users see their style is ready before they type anything.
+
+2. **✓ Style saved confirmation** — appears once after each completed session, confirming
+   that choices were saved. Closes the feedback loop: "I edited → it was saved → next time it applies."
+
+3. **Built from N edits** — shown in the sidebar below the profile. Makes the accumulation
+   tangible: a profile built from 12 edits feels more trustworthy than one built from 1.
 
 ### Style tab
 
 - Metric cards: tone, crop, export targets
-- Color palette swatches
+- Color palette swatches (extracted from uploaded images via Pillow)
+- **Camera profile** — camera model, focal length, aperture, ISO, exposure read from
+  image EXIF metadata automatically. Displayed in the Style tab. Injected into the
+  agent system prompt so editing recommendations are informed by shooting conditions
+  (e.g. high-ISO shots receive noise-aware suggestions).
 - Profile editor: tone, crop, export targets, and aesthetic notes are all directly editable
 - Raw style_profile.json always visible
 - Clear memory button

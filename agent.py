@@ -60,6 +60,40 @@ def _compress_image(image_bytes: bytes, max_bytes: int = 4_500_000) -> tuple[byt
     return buf.getvalue(), "image/jpeg"
 
 
+def extract_exif(image_bytes: bytes) -> dict:
+    """
+    Read EXIF metadata from image bytes.
+    Returns a dict with camera, iso, focal_length, aperture, exposure — whichever are present.
+    Returns {} if the image has no EXIF or is not a JPEG/TIFF.
+    """
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        exif_raw = img.getexif()
+        if not exif_raw:
+            return {}
+        result = {}
+        make = str(exif_raw.get(271, "")).strip()   # Make
+        model = str(exif_raw.get(272, "")).strip()  # Model
+        if model:
+            result["camera"] = f"{make} {model}".strip()
+        iso = exif_raw.get(34855)                   # ISOSpeedRatings
+        if iso:
+            result["iso"] = int(iso)
+        fl = exif_raw.get(37386)                    # FocalLength
+        if fl:
+            result["focal_length"] = f"{float(fl):.0f}mm"
+        fn = exif_raw.get(33437)                    # FNumber
+        if fn and float(fn) > 0:
+            result["aperture"] = f"f/{float(fn):.1f}"
+        et = exif_raw.get(33434)                    # ExposureTime
+        if et and float(et) > 0:
+            et_f = float(et)
+            result["exposure"] = f"1/{int(round(1/et_f))}s" if et_f < 1 else f"{et_f:.1f}s"
+        return result
+    except Exception:
+        return {}
+
+
 def extract_color_palette(image_bytes: bytes) -> list:
     """Extract up to 5 dominant colors from image bytes. Returns hex strings."""
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -160,6 +194,24 @@ def build_system_prompt(memory: dict) -> str:
 
     if sig.get("notes"):
         lines.append(f"- Aesthetic: {sig['notes']}")
+
+    # Shooting context from EXIF — informs editing recommendations
+    camera = memory.get("camera_profile", {})
+    if camera.get("focal_length") or camera.get("iso"):
+        cam_parts = []
+        if camera.get("camera"):
+            cam_parts.append(camera["camera"])
+        if camera.get("focal_length"):
+            cam_parts.append(camera["focal_length"])
+        if camera.get("aperture"):
+            cam_parts.append(camera["aperture"])
+        if camera.get("iso"):
+            iso_val = camera["iso"]
+            cam_parts.append(f"ISO {iso_val}")
+            if iso_val > 1600:
+                cam_parts.append("(high ISO — consider noise-aware edits)")
+        if cam_parts:
+            lines.append(f"- Camera profile: {', '.join(cam_parts)}")
 
     if lines:
         return base + "\n\nUser style profile (apply unless told otherwise):\n" + "\n".join(lines)

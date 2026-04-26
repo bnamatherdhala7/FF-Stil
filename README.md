@@ -4,35 +4,41 @@
 
 Stil is a conversational AI assistant for content creators and brand designers.
 Upload a photo, describe what you want, and Stil executes it — then remembers your
-choices so the next session already knows your aesthetic.
+choices so the next session already knows your aesthetic. No re-explaining. Ever.
 
 ---
 
 ## The problem
 
-Every AI tool you open treats you like a stranger, even after years of use.
+A creator posts 3–5 times a week. That is 200+ pieces of content a year. Across those
+200 posts, across Lightroom, Canva, CapCut, and every AI tool they try, one thing
+stays constant: **they have to re-specify the same preferences from scratch, every
+single time.**
 
-Here is what a typical creator's image editing session looks like today:
+Here is what a typical editing session looks like today:
 
-1. Open Lightroom (or Canva, or any AI tool)
+1. Open any editing tool — Lightroom, Canva, an AI assistant
 2. Apply your warm filter — *again*
-3. Crop to square — *again*
-4. Set export to 1080×1080 for Instagram — *again*
-5. Bump brightness up +20 — *again*
+3. Crop to square for Instagram — *again*
+4. Set export to 1080×1080, JPEG, sRGB — *again*
+5. Bump brightness +20 — *again*
+6. Repeat for every photo, every session, every tool
 
-You have done this hundreds of times. The preferences are not secret or complicated —
-warm tones, square crops, Instagram exports, slight brightness boost. You have decided
-these things already. But no tool remembers them across sessions, and no tool carries
-them across platforms.
+None of these are creative decisions. They were decided months ago. But because no
+tool holds the memory, the creator re-enters them by hand — indefinitely.
+
+**This compounds into a bigger problem: visual drift.**
+Post 1 looks like the creator. Post 47 sort of does. Post 180 barely does —
+not because their aesthetic changed, but because micro-decisions made under
+time pressure, across different tools, slowly diverge from the original intent.
+
+The real problem is not re-explanation overhead. **It is consistency at volume.**
+
+Stil fixes this. You tell it once. It applies your style to every photo after that —
+automatically, without being asked, every session.
 
 **Lightroom presets stay in Lightroom. Canva templates stay in Canva.
-Every AI assistant starts from zero every single time.**
-
-The result: 46% of a creator's working time goes to tasks like this — repetitive
-technical decisions they have already made, re-entered by hand because no tool holds
-the memory.
-
-Stil fixes this. You tell it once. It remembers forever.
+Every AI assistant starts from zero. Stil doesn't.**
 
 ---
 
@@ -41,13 +47,15 @@ Stil fixes this. You tell it once. It remembers forever.
 | Feature | What it means for you |
 |---|---|
 | **Conversational editing** | Say "make this warmer and crop it square" — Stil picks the right tools and runs them. No menus, no presets to configure. |
-| **Style memory** | After every session, Stil silently extracts your preferences and saves them. Next time, they're already applied. |
-| **Real image preview** | Upload a photo and see an actual before/after — filters, brightness, contrast, and crop applied using real image processing. |
-| **Choices log** | Every filter, crop, brightness, and export choice is logged. The most recent choice always wins — no AI guessing needed. |
-| **Style profile editor** | See exactly what Stil thinks your style is. Edit any field. Stil is transparent by design — no hidden magic. |
-| **Color palette extraction** | Upload an image and Stil reads your dominant colors automatically, adding them to your style profile. |
+| **Style memory** | After every session, Stil silently saves your choices. Next session, type "edit my photo" — your style is already applied. |
+| **Real image preview** | Upload a photo and see an actual before/after — filters, brightness, contrast, and crop rendered by real image processing. |
+| **Choices log** | Every filter, crop, brightness, and export choice is logged. The most recent choice always wins — no AI guessing. |
+| **Style Active banner** | Every return session shows which preferences are loaded before you type anything — making the memory loop visible. |
+| **Style profile editor** | See exactly what Stil thinks your style is. Edit any field. Transparent by design — no hidden magic. |
+| **Color palette extraction** | Upload an image and Stil reads your dominant colors automatically via Pillow — no API call needed. |
+| **Camera profile (EXIF)** | Stil reads camera model, focal length, ISO, and aperture from your photo's metadata and stores it in your style profile. High-ISO shots get noise-aware editing suggestions automatically. |
 | **Smart asset search** | Describe what you need in plain English. Stil scores your library by keyword match and AI-generated tags. |
-| **Quality insights** | Every session is graded on three dimensions: tool accuracy, goal completion, and creative intent — the one that actually matters. |
+| **Quality insights** | Sessions graded on tool accuracy, goal completion, and creative intent — plus a trend chart showing whether your profile is improving output over time. |
 
 ---
 
@@ -80,21 +88,22 @@ streamlit run app.py
 ### First session — building your profile
 
 1. Open the **Edit** tab
-2. If it is your first time, fill in the **style seed card** — tone, platform, and one
-   word that describes your aesthetic (e.g. "moody"). This gives Stil a starting point
-   before any conversation.
-3. Upload a photo — Stil extracts your dominant color palette automatically
-4. Type what you want: *"Apply a warm filter, bump brightness +20, crop square,
-   export for Instagram"*
+2. Fill in the **style seed card** — tone, platform, and one word for your aesthetic
+   (e.g. "moody"). Seeds your profile before any conversation so session 1 is already personalised.
+3. Upload a photo — Stil reads your dominant color palette and camera EXIF automatically
+4. Type what you want: *"Apply a warm filter, bump brightness +20, crop square, export for Instagram"*
 5. Watch the tool pills fire in real time as each action executes
-6. A **before/after preview** appears showing the actual edit applied to your photo
-7. Your choices are saved to the sidebar — that is your style profile updating live
+6. A **before/after preview** appears showing the actual edit on your photo
+7. A **✓ Style profile updated** confirmation appears — you can see the memory loop working
+8. Your choices are saved to the sidebar — the style profile is live
 
 ### Every session after — no re-explanation needed
 
-1. Upload a new photo (or skip — Stil keeps the previous one in context)
-2. Type: *"Edit this for my Instagram"*
-3. Stil reads your choices log and applies your remembered aesthetic without asking
+1. Upload a new photo
+2. You will see a **✦ Style active** banner listing your remembered preferences — warm · square · instagram — before you type anything
+3. Type: *"Edit my photo"* — that is all
+4. Stil reads the choices log and applies your full aesthetic without being asked
+5. Before/after preview shows the result
 
 ### Style tab — your profile, always visible and editable
 
@@ -153,11 +162,12 @@ that change is captured immediately from the tool call — no AI inference, no d
 | `apply_filter` | warm, cool, vintage, dramatic, soft, vivid, bw |
 | `adjust_brightness` | −100 (darker) to +100 (brighter) |
 | `adjust_contrast` | −100 (flat) to +100 (high contrast) |
-| `crop_image` | square, portrait, landscape, story, tiktok, wide |
+| `crop_image` | square, portrait, landscape, story, tiktok, reels, wide |
 | `set_export_preset` | instagram, tiktok, reels, twitter, linkedin, web, print |
 | `list_layers` | inspect the layer stack |
 
-All edits produce a real before/after preview using Pillow image processing.
+All visual edits produce a real before/after preview using Pillow image processing.
+Color palette and EXIF extraction also use Pillow — zero additional API calls.
 
 ---
 
