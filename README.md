@@ -10,35 +10,68 @@ choices so the next session already knows your aesthetic. No re-explaining. Ever
 
 ## The problem
 
-A creator posts 3–5 times a week. That is 200+ pieces of content a year. Across those
-200 posts, across Lightroom, Canva, CapCut, and every AI tool they try, one thing
-stays constant: **they have to re-specify the same preferences from scratch, every
-single time.**
+A creator posts 3–5 times a week. That is 200+ pieces of content a year.
 
-Here is what a typical editing session looks like today:
+Here is what every editing session looks like today, regardless of which tool they open:
 
-1. Open any editing tool — Lightroom, Canva, an AI assistant
+1. Open Lightroom, Canva, or any AI assistant
 2. Apply your warm filter — *again*
 3. Crop to square for Instagram — *again*
 4. Set export to 1080×1080, JPEG, sRGB — *again*
 5. Bump brightness +20 — *again*
 6. Repeat for every photo, every session, every tool
 
-None of these are creative decisions. They were decided months ago. But because no
-tool holds the memory, the creator re-enters them by hand — indefinitely.
+None of these are creative decisions. They were made months ago.
+But every tool starts from scratch because no tool holds the memory.
 
 **This compounds into a bigger problem: visual drift.**
-Post 1 looks like the creator. Post 47 sort of does. Post 180 barely does —
-not because their aesthetic changed, but because micro-decisions made under
-time pressure, across different tools, slowly diverge from the original intent.
+Post 1 looks like the creator. Post 47 sort of does. Post 180 barely does — not because
+the aesthetic changed, but because 200 micro-decisions made under time pressure, across
+three different tools, at varying energy levels, slowly diverge from the original intent.
 
-The real problem is not re-explanation overhead. **It is consistency at volume.**
+The creator does not notice it happening turn by turn. They notice it six months later
+when their feed no longer looks like theirs.
 
-Stil fixes this. You tell it once. It applies your style to every photo after that —
-automatically, without being asked, every session.
+**The real problem is not re-explanation overhead. It is consistency at volume.**
 
-**Lightroom presets stay in Lightroom. Canva templates stay in Canva.
-Every AI assistant starts from zero. Stil doesn't.**
+---
+
+## Why existing solutions don't solve it
+
+This is where it gets important. A lot of teams are building "memory" features right now.
+ChatGPT Memories, Claude Projects, Notion AI, Adobe Brand Kits, Lightroom presets.
+They all store preferences. None of them solve consistency.
+
+Here is why:
+
+| | Today's editing tools | "Memory" features (most AI tools) | Stil |
+|---|---|---|---|
+| **What gets stored** | Nothing | What you *say* ("I like warm filters") | What you *do* (`apply_filter("warm")` from actual tool call) |
+| **How it learns** | Doesn't | You configure it / tell it | Reads every tool call after every session |
+| **Updates automatically** | No | No — you re-brief it when things change | Yes — after every session, from behavior |
+| **Handles changed preferences** | — | You have to explicitly update it | Choices log always reflects the most recent action |
+| **Detects feed inconsistency** | No | No | Yes — Feed Cohesion Score quantifies drift across your photos |
+| **Grades creative intent** | No | No | Yes — sessions scored on whether the output served the actual creative goal |
+| **Source of truth** | None | Your stated preferences | Your demonstrated editing behavior |
+
+**The critical distinction:** A memory feature that stores "user likes warm filters"
+is a sophisticated preset. It still requires you to declare your preference, and it does
+not update unless you tell it to. If you switch to dramatic filters across the next ten
+edits, the memory still "knows" you like warm.
+
+Stil's choices log captures what you actually did — not what you said.
+Every tool call (`apply_filter`, `crop_image`, `set_export_preset`) writes to the log
+directly from the API response. The most recent edit always wins.
+If you changed your mind, the system changes with you — automatically, from behavior,
+without re-briefing.
+
+**Where the intelligence comes from:**
+
+1. **Behavioral ground truth** — the choices log records actual tool calls, not stated preferences
+2. **AI-extracted intent** — after each session, Haiku reads the conversation and extracts higher-order patterns that don't surface from tool calls alone
+3. **Priority ordering** — the system prompt always injects `choices_log` first, `style_signature` second; behavior beats declaration
+4. **Drift detection** — Feed Cohesion Score gives a number (0–100) for something creators previously had no way to measure: "is my feed actually consistent?"
+5. **Creative intent grading** — sessions scored not on task completion but on whether the output served the creative goal; this is the signal for whether style injection is working
 
 ---
 
@@ -46,16 +79,18 @@ Every AI assistant starts from zero. Stil doesn't.**
 
 | Feature | What it means for you |
 |---|---|
-| **Conversational editing** | Say "make this warmer and crop it square" — Stil picks the right tools and runs them. No menus, no presets to configure. |
-| **Style memory** | After every session, Stil silently saves your choices. Next session, type "edit my photo" — your style is already applied. |
-| **Real image preview** | Upload a photo and see an actual before/after — filters, brightness, contrast, and crop rendered by real image processing. |
-| **Choices log** | Every filter, crop, brightness, and export choice is logged. The most recent choice always wins — no AI guessing. |
-| **Style Active banner** | Every return session shows which preferences are loaded before you type anything — making the memory loop visible. |
-| **Style profile editor** | See exactly what Stil thinks your style is. Edit any field. Transparent by design — no hidden magic. |
-| **Color palette extraction** | Upload an image and Stil reads your dominant colors automatically via Pillow — no API call needed. |
-| **Camera profile (EXIF)** | Stil reads camera model, focal length, ISO, and aperture from your photo's metadata and stores it in your style profile. High-ISO shots get noise-aware editing suggestions automatically. |
+| **Conversational editing** | Say "make this warmer and crop it square" — Stil picks the right tools and runs them. No menus, no presets. |
+| **Behavioral memory** | Stil saves what you *do*, not what you say. Every tool call is logged. Next session, your style is injected automatically — before you type anything. |
+| **Real image preview** | Before/after preview appears after every edit. Filters, brightness, contrast, and crop rendered by real Pillow image processing. |
+| **Choices log** | Every filter, crop, brightness, and export choice is logged from actual tool calls. Most recent entry wins. If you change your mind, the system changes with you — no re-briefing. |
+| **Style Active banner** | Every return session shows exactly which preferences are loaded (warm · square · instagram) before you type a word. The memory loop is visible. |
+| **Feed Cohesion Score** | Upload photos from your grid. Get a 0–100 consistency score across color temperature, brightness, contrast, and saturation — with specific issues and a suggested fix. |
+| **Style Transfer** | Upload any reference photo (competitor shot, mood board, editorial). Stil extracts its visual style and applies it to your photo in seconds. |
+| **Brief-to-Edit Translator** | Paste a creative direction ("moody editorial, cool tones, portrait for instagram"). Stil generates a structured edit plan you can send directly to the editor. |
+| **Client Brand Switcher** | Save named style profiles ("Summer campaign", "Brand B"). Switch between clients or campaigns with one click — no re-briefing. |
+| **Camera profile (EXIF)** | Stil reads camera model, focal length, ISO, and aperture from image metadata. High-ISO shots get noise-aware suggestions automatically. |
+| **Quality insights** | Sessions graded on tool accuracy, goal completion, and creative intent. The trend chart shows whether your profile is actually improving output over time. |
 | **Smart asset search** | Describe what you need in plain English. Stil scores your library by keyword match and AI-generated tags. |
-| **Quality insights** | Sessions graded on tool accuracy, goal completion, and creative intent — plus a trend chart showing whether your profile is improving output over time. |
 
 ---
 
@@ -131,27 +166,45 @@ Stil returns ranked results with thumbnails, AI-generated tags, and a rationale 
 
 ## How style memory works
 
+**The key architectural decision: Stil stores what you do, not what you say.**
+
 ```
-You finish a session
+You upload a photo and type: "Make it warmer, crop square, export for Instagram"
         ↓
-Two things happen:
+Stil executes: apply_filter("warm") → crop_image("square") → set_export_preset("instagram")
+        ↓
+Two things happen in parallel:
 
-  1. choices_log updated (deterministic — ground truth)
-     apply_filter("warm") → logs  filter: warm
-     crop_image("square")  → logs  crop: square
-     Most recent entry always wins in the next session's system prompt.
+  1. choices_log updated — deterministic, from tool calls directly
+     apply_filter("warm")          → logs  filter: warm
+     crop_image("square")          → logs  crop: square
+     set_export_preset("instagram") → logs  export: instagram
 
-  2. style_signature updated (AI-extracted)
-     Haiku reads the conversation and extracts tone, aesthetic notes,
-     export targets — things that don't surface from tool calls alone.
+     Most recent entry always wins. No AI involved. This is the ground truth.
+
+  2. style_signature updated — AI-extracted
+     Haiku reads the conversation and extracts tone, aesthetic intent,
+     platform preferences — things that don't surface from tool calls alone.
+     Example: "prefers clean, editorial warmth; avoids heavy vignettes."
 
 Next session:
-  Priority 1 → choices_log (what you actually did last time)
-  Priority 2 → style_signature (what Stil inferred about your taste)
+  You open Stil with a new photo.
+  The system prompt already contains:
+    "Preferred filter: warm (last used)"
+    "Crop: square (last used)"
+    "Export for: instagram (last used)"
+
+  You type: "Edit my photo."
+  Stil applies your full style without being asked.
 ```
 
-The choices log is the ground truth. If you switch from warm to dramatic filters,
-that change is captured immediately from the tool call — no AI inference, no drift.
+**What this means when your preferences change:**
+You switch to a cool filter this session. The choices_log updates immediately —
+`filter: cool` becomes the new first entry. The next session's system prompt
+reflects cool. You never had to say "I've changed my filter preference."
+
+This is why the choices log is the ground truth — not the AI-extracted signature,
+not what you said in any previous conversation. What you did last time, wins.
 
 ---
 

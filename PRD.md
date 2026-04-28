@@ -86,7 +86,57 @@ it produces is the real cost.
 cross-session visual style memory + conversational execution + real image feedback +
 works from day one without a training data library.
 
-### 1.4 Market size
+### 1.4 Why "skill" and "memory" features don't solve this
+
+Every major AI platform is now shipping memory. ChatGPT Memories, Claude Projects,
+Notion AI, Gemini context — they all offer some form of persistent preference storage.
+Adobe has Brand Kits and Style Presets. Lightroom has presets. Canva has brand kits.
+
+None of these solve the consistency problem. Here is why.
+
+**Skills and presets are static configuration.**
+They store what you tell them. A memory feature that holds "user likes warm filters"
+is a sophisticated preset. You still have to declare your preference. You still have to
+update it when your preferences change. You still have to remember to apply it.
+The editing burden is reduced — the consistency enforcement is not.
+
+**Memory features store what you say. Stil stores what you do.**
+There is a fundamental difference between a system that saves "I prefer warm tones"
+and a system that reads `apply_filter("warm")` directly from a tool call. The first
+is a declaration. The second is evidence of behavior. Declarations drift — you said
+warm in January, you've been using cool since March. Evidence updates automatically,
+because it is read from actual editing actions, not from what the user remembers
+telling the system.
+
+**No existing memory feature detects drift.**
+If a creator switches from warm to cool over 20 sessions, no AI memory system today
+gives them a signal that their feed is becoming inconsistent. They find out six months
+later when they scroll back through their grid. Stil's Feed Cohesion Score quantifies
+consistency across uploaded photos — objectively, before the drift becomes visible.
+
+**No existing memory feature grades creative intent.**
+Completing a task and serving a creative goal are different things. A memory-augmented
+AI assistant can complete exactly what was typed and still produce output that misses
+the creative purpose entirely. Stil tracks this explicitly — creative intent is scored
+per session, and the trend line shows whether style injection is actually improving
+output or just making it look like a style is being applied.
+
+**The key distinction:**
+
+| Dimension | Skill / preset / memory feature | Stil |
+|---|---|---|
+| Learns from | What you say ("I like warm") | What you do (`apply_filter("warm")` from tool call) |
+| Updates | When you tell it to | After every session, automatically |
+| Handles preference changes | You re-brief it | Choices log always reflects most recent action |
+| Detects feed inconsistency | No | Yes — Feed Cohesion Score |
+| Grades creative intent | No | Yes — per session, with trend chart |
+| Source of truth | Stated preference | Demonstrated behavior |
+
+The fundamental problem with skill-based memory is that it is a better preset, not a
+better system. Stil is a different architecture: it observes behavior, extracts patterns
+from that behavior, and enforces them — without the creator having to declare anything.
+
+### 1.5 Market size
 
 **TAM:** Creator economy $205B (2025) → $1.35T (2035) at 23% CAGR.
 AI image editing tools: $5.1–6.3B (2025) → $39.7B by 2030 at ~39% CAGR.
@@ -101,43 +151,118 @@ At $15/month = **$8.1M ARR.**
 
 ## 2. The solution
 
-### 2.1 How Stil works
+### 2.1 What Stil looks like for a creator
+
+**First session — building the profile**
+
+> A photographer opens Stil. She uploads a portrait she just shot.
+> She types: "Make this warmer, bump brightness a bit, crop square, export for Instagram."
+>
+> Stil reads the image. Four tools fire in sequence — apply_filter("warm"),
+> adjust_brightness(+20), crop_image("square"), set_export_preset("instagram").
+> A before/after preview appears. Her edited photo alongside the original.
+> A confirmation bar appears: "✓ Style profile updated."
+
+One session. Four choices. The profile now knows her aesthetic.
+
+**Second session — no re-explanation**
+
+> She opens Stil the next day with a new photo.
+> A banner at the top: "✦ Style active — warm · square · instagram · built from 4 edits."
+>
+> She types: "Edit my photo."
+>
+> That is all. Stil reads the choices log, applies her style, shows the before/after.
+> She never said "warm filter." She never said "square crop." The system already knew.
+
+**Ten sessions later — catching drift**
+
+> She opens the Feed tab. Uploads 8 recent photos from her grid.
+> Score: 61/100. "Mostly consistent."
+> Issues: "Brightness is inconsistent across your feed" · "Saturation varies — some vivid, others muted."
+>
+> She did not notice this happening. Stil did.
+
+### 2.2 How Stil works — the full loop
 
 ```
-User types: "Make this warmer, crop square, export for Instagram"
+Creator uploads a photo and describes what they want
                 ↓
-Stil reads the user's style profile → injects preferences into context
+Stil reads style_profile.json
+→ injects choices_log (recent tool calls) + style_signature (AI-extracted preferences)
+  into the system prompt as ground truth
                 ↓
-Claude reasons about which tools to call
+Claude reasons about which tools to call, using the style profile as context
                 ↓
 apply_filter("warm") → adjust_brightness(+20) → crop_image("square")
 → set_export_preset("instagram")
                 ↓
-Real Pillow image processing → before/after preview shown inline
+Pillow applies the actual edits → before/after preview shown inline
                 ↓
-Session saved → style profile updated → choices log updated
+Session saved to logs/session_TIMESTAMP.jsonl
                 ↓
-Next session: warm filter, square crop, Instagram export already applied
+Two things happen in parallel:
+  1. choices_log updated from tool calls (deterministic — no AI involved)
+  2. style_signature updated by Haiku from conversation (captures intent beyond tool calls)
+                ↓
+Next session: warm · square · instagram already injected into context
 ```
 
-### 2.2 Two-layer style memory
+### 2.3 Where the intelligence comes from
 
-Stil maintains two memory layers that work together:
+Stil is not intelligent because of a single AI call. The intelligence is in the
+architecture — specifically, in what gets stored, in what priority, and from what source.
 
-**Layer 1 — Choices log (ground truth)**
-Every tool call is logged deterministically: which filter, which crop ratio, which
-export platform, what brightness level. This is not AI inference — it is a direct
-record of what the user actually did. Most recent choice wins. If you switch from warm
-to dramatic filters, the log captures the change immediately.
+**Layer 1 — Behavioral ground truth (choices_log)**
 
-**Layer 2 — Style signature (AI-extracted)**
-After each session, a Haiku call reads the conversation and extracts higher-level
-preferences: tone, aesthetic mood, notes that do not surface from tool calls alone
-("user prefers editorial, high-contrast shots with minimal text overlays").
+Every tool call writes to the choices log directly:
+`apply_filter("warm")` → `{"filter": "warm", "ts": "2026-04-28 14:32"}`
 
-In the next session, the system prompt is injected with both layers, choices log
-taking priority. The result: the user's last explicit choices always win, with the
-AI-inferred aesthetic filling in the gaps.
+This is deterministic. No AI involved. No inference. It is a factual record of
+what the creator actually did. Most recent entry wins. If they switched from warm
+to cool across the last 5 sessions, the log reflects cool — not warm, regardless
+of what they may have stated earlier.
+
+This is what separates Stil from skill/preset/memory features. Those systems record
+what you say. Stil records what you do. The difference matters when preferences change.
+
+**Layer 2 — AI-extracted intent (style_signature)**
+
+After each session, one Haiku call reads the conversation transcript and extracts
+higher-order preferences: tone direction, aesthetic mood, editorial notes that do
+not surface from tool calls alone. A creator who says "I want it to feel like
+film from the 80s" is expressing an intent that no filter name captures — the
+style_signature stores it.
+
+**The priority rule — behavior always beats declaration**
+
+In the next session's system prompt:
+```
+choices_log entry  →  first priority (what you did)
+style_signature    →  fills the gaps (what Stil inferred from what you said)
+```
+
+If a creator said "I like warm" in January but has applied cool filters every
+session since February, the system prompt reflects cool. The behavioral record
+wins — without the creator having to update anything.
+
+**Layer 3 — Objective consistency measurement (Feed Cohesion Score)**
+
+Color temperature variance, brightness variance, contrast variance, saturation
+variance — measured across the feed using Pillow math. The score gives creators
+a number (0–100) for something they previously had no way to measure:
+"Is my feed actually consistent, or does it just feel like it should be?"
+
+**Layer 4 — Creative intent grading**
+
+Sessions are graded on three dimensions: tool accuracy, goal completion, and
+creative intent. Creative intent is the one that matters. A session can score
+5/5 on completion and 1/5 on intent — Stil did exactly what was typed but
+missed the creative goal. This dimension is the feedback signal for whether the
+style profile is actually working.
+
+**The combined result:** A system that does not need the creator to maintain their
+own preferences. They edit. The system observes. The next session is already aligned.
 
 ### 2.3 Why conversational is the right interface
 
