@@ -38,11 +38,11 @@ when their feed no longer looks like theirs.
 
 ## Why existing solutions don't solve it
 
-This is where it gets important. A lot of teams are building "memory" features right now.
+A lot of teams are building "memory" features right now.
 ChatGPT Memories, Claude Projects, Notion AI, Adobe Brand Kits, Lightroom presets.
 They all store preferences. None of them solve consistency.
 
-Here is why:
+Here is the precise reason why — and it matters:
 
 | | Today's editing tools | "Memory" features (most AI tools) | Stil |
 |---|---|---|---|
@@ -54,24 +54,39 @@ Here is why:
 | **Grades creative intent** | No | No | Yes — sessions scored on whether the output served the actual creative goal |
 | **Source of truth** | None | Your stated preferences | Your demonstrated editing behavior |
 
-**The critical distinction:** A memory feature that stores "user likes warm filters"
-is a sophisticated preset. It still requires you to declare your preference, and it does
-not update unless you tell it to. If you switch to dramatic filters across the next ten
-edits, the memory still "knows" you like warm.
+**Why "memory" features are sophisticated presets, not consistency systems.**
 
-Stil's choices log captures what you actually did — not what you said.
-Every tool call (`apply_filter`, `crop_image`, `set_export_preset`) writes to the log
-directly from the API response. The most recent edit always wins.
-If you changed your mind, the system changes with you — automatically, from behavior,
-without re-briefing.
+When ChatGPT or Claude Projects stores "user likes warm filters," they are storing a declaration — something you *said* once in a conversation. That declaration stays frozen until you explicitly go back and update it. If you start using cool tones across your next twenty edits because you are building a winter campaign, the memory still "knows" you like warm. Nothing in the system detected the shift. Nothing updated. You just drifted, invisibly, and the tool kept confidently applying the wrong preference.
 
-**Where the intelligence comes from:**
+This is the declaration trap: stated preferences and demonstrated behavior diverge the moment life gets in the way — client requests, seasonal campaigns, mood shifts, creative evolution. No memory feature built on declarations can keep up. They all require you to manage the memory as a second job.
 
-1. **Behavioral ground truth** — the choices log records actual tool calls, not stated preferences
-2. **AI-extracted intent** — after each session, Haiku reads the conversation and extracts higher-order patterns that don't surface from tool calls alone
-3. **Priority ordering** — the system prompt always injects `choices_log` first, `style_signature` second; behavior beats declaration
-4. **Drift detection** — Feed Cohesion Score gives a number (0–100) for something creators previously had no way to measure: "is my feed actually consistent?"
-5. **Creative intent grading** — sessions scored not on task completion but on whether the output served the creative goal; this is the signal for whether style injection is working
+Stil does not store declarations. It reads tool calls.
+
+```
+You type:  "Make this warmer, crop square, export for Instagram"
+            ↓
+Stil executes:  apply_filter("warm")  →  logs filter: warm
+                crop_image("square")  →  logs crop: square
+                set_export_preset("instagram")  →  logs export: instagram
+```
+
+The choices log is written directly from the API response — no AI guessing, no paraphrasing, no interpretation. It is the literal record of what you did. The most recent action always wins. If you switch to cool tones, the log updates immediately. The next session's system prompt reflects cool. You never re-briefed anything.
+
+**Where the intelligence comes from — two layers working together.**
+
+A choices log alone is not enough. "Applied warm filter 8 times" is not the same as "this creator pursues a warm, editorial aesthetic optimised for portrait content." The log captures *what* was done; it cannot capture *why*.
+
+So Stil runs two systems in parallel:
+
+1. **Behavioral ground truth (choices_log)** — reads actual tool calls after every session. Deterministic. No AI involved. This is the authoritative record of what you did. The system also performs frequency analysis: if you have used warm filter in 7 of 9 sessions, that is surfaced as a *consistent preference*, not just "last used." If you diverged last session, Stil notes both — "cool (last session) — usual style is warm (7/9 sessions)" — so Claude can make an informed decision rather than blindly following the most recent click.
+
+2. **AI-extracted intent (style_signature)** — after each session, Haiku reads the conversation transcript and extracts the aesthetic intent that tool calls alone cannot capture: *why* warm, for what platform, with what creative goal. "Prefers clean editorial warmth for portrait content; avoids heavy vignettes." This layer fills the gap between *what was done* and *what was meant*.
+
+The system prompt injects choices_log first, style_signature second. Behavior beats declaration. But when the log is sparse (early sessions, or editing categories without recent choices), the style_signature provides intelligent defaults rather than leaving the system with nothing.
+
+3. **Drift detection (Feed Cohesion Score)** — gives a 0–100 number to something previously unmeasurable: "is my feed actually consistent?" Color temperature, brightness, contrast, and saturation variance are computed across your uploaded photos using Pillow math — no API calls, no cost. The score surfaces *which dimension* is causing drift and suggests a specific fix. Most creators only discover drift six months after it started; this makes it visible immediately.
+
+4. **Creative intent grading** — sessions are scored not on task completion but on whether the output served what the user *actually wanted*. A session that scores 5/5 on completion and 1/5 on intent means Stil did exactly what was typed but missed the creative purpose. This is the signal for whether the style profile is actually working — and it is the signal that no rule-based or preset-based system can generate.
 
 ---
 

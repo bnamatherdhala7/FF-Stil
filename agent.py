@@ -156,46 +156,99 @@ def update_choices_log(tool_trace: list, existing_style: dict = None) -> dict:
     return style
 
 
+def _log_field_analysis(log: list, field: str) -> dict:
+    """
+    Analyze a single field across choices_log to surface pattern vs. recency.
+    Returns: recent, dominant, dominant_count, total, consistent (>=70% same value).
+    """
+    values = [e[field] for e in log if e.get(field) is not None]
+    if not values:
+        return {}
+    recent = values[0]
+    counts: dict = {}
+    for v in values:
+        counts[v] = counts.get(v, 0) + 1
+    dominant = max(counts, key=counts.get)
+    dominant_count = counts[dominant]
+    return {
+        "recent": recent,
+        "dominant": dominant,
+        "dominant_count": dominant_count,
+        "total": len(values),
+        "consistent": dominant_count / len(values) >= 0.7,
+    }
+
+
 def build_system_prompt(memory: dict) -> str:
     """
     Inject style preferences into system prompt.
-    Priority: choices_log (deterministic, from actual tool calls) > style_signature (AI-extracted).
+    Intelligence layers:
+      1. choices_log frequency analysis — dominant pattern across sessions, not just last action
+      2. Recency signal — surfaces when the latest edit diverges from the dominant pattern
+      3. style_signature — ambient aesthetic context that tool calls alone don't capture
     """
     base = SYSTEM_PROMPT
     sig = memory.get("style_signature") or {}
     log = memory.get("choices_log") or []
-    recent = log[0] if log else {}
 
     lines = []
 
-    # Filter / tone — recent log wins
-    if recent.get("filter"):
-        lines.append(f"- Preferred filter: {recent['filter']} (last used)")
+    # ── Filter / tone ──────────────────────────────────────────────────────────
+    fa = _log_field_analysis(log, "filter")
+    if fa:
+        if fa["consistent"] and fa["recent"] == fa["dominant"]:
+            lines.append(
+                f"- Filter: {fa['recent']} "
+                f"({fa['dominant_count']}/{fa['total']} sessions — consistent preference)"
+            )
+        elif fa["recent"] != fa["dominant"]:
+            # User diverged from their norm last session — honour it but flag the pattern
+            lines.append(
+                f"- Filter: {fa['recent']} (last session) — "
+                f"usual style is {fa['dominant']} ({fa['dominant_count']}/{fa['total']} sessions); "
+                f"apply {fa['recent']} unless the user says otherwise"
+            )
+        else:
+            lines.append(f"- Filter: {fa['recent']} (last used)")
     elif sig.get("filter_style") and sig["filter_style"] != "none":
-        lines.append(f"- Preferred filter: {sig['filter_style']}")
+        lines.append(f"- Filter style: {sig['filter_style']}")
     elif sig.get("tone"):
         lines.append(f"- Tone: {sig['tone']}")
 
-    # Crop — recent log wins
-    if recent.get("crop"):
-        lines.append(f"- Crop: {recent['crop']} (last used)")
+    # ── Crop ───────────────────────────────────────────────────────────────────
+    ca = _log_field_analysis(log, "crop")
+    if ca:
+        if ca["consistent"]:
+            lines.append(f"- Crop: {ca['recent']} ({ca['dominant_count']}/{ca['total']} sessions)")
+        else:
+            lines.append(f"- Crop: {ca['recent']} (last used)")
     elif sig.get("crop_preference") and sig["crop_preference"] != "none":
         lines.append(f"- Crop: {sig['crop_preference']}")
 
-    # Export — recent log wins
-    if recent.get("export"):
-        lines.append(f"- Export for: {recent['export']} (last used)")
+    # ── Export ─────────────────────────────────────────────────────────────────
+    ea = _log_field_analysis(log, "export")
+    if ea:
+        lines.append(f"- Export: {ea['recent']} (last used)")
     elif sig.get("export_targets"):
         lines.append(f"- Export targets: {', '.join(sig['export_targets'])}")
 
-    # Brightness hint if last session had an explicit level
-    if recent.get("brightness") is not None:
-        lines.append(f"- Brightness adjustment: {recent['brightness']:+d} (last used)")
+    # ── Brightness — show recent + average when history is meaningful ──────────
+    bright_vals = [e["brightness"] for e in log if e.get("brightness") is not None]
+    if bright_vals:
+        recent_b = bright_vals[0]
+        avg_b = round(sum(bright_vals) / len(bright_vals))
+        if len(bright_vals) >= 3 and abs(recent_b - avg_b) > 15:
+            lines.append(
+                f"- Brightness: {recent_b:+d} (last session, average across {len(bright_vals)} sessions is {avg_b:+d})"
+            )
+        else:
+            lines.append(f"- Brightness: {recent_b:+d} (last used)")
 
+    # ── Aesthetic notes — style_signature gives context choices_log can't ──────
     if sig.get("notes"):
-        lines.append(f"- Aesthetic: {sig['notes']}")
+        lines.append(f"- Aesthetic intent: {sig['notes']}")
 
-    # Shooting context from EXIF — informs editing recommendations
+    # ── Camera profile (EXIF) ─────────────────────────────────────────────────
     camera = memory.get("camera_profile", {})
     if camera.get("focal_length") or camera.get("iso"):
         cam_parts = []

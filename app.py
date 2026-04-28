@@ -1,6 +1,6 @@
 """
 app.py — Stil Streamlit UI
-Clean light design for creative professionals.
+Split-panel layout: conversation left, live image preview right.
 Run: streamlit run app.py
 """
 
@@ -26,203 +26,256 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ─── Design tokens ────────────────────────────────────────────────────────────
-# bg:       #F5F5FA  warm light gray page bg
-# surface:  #FFFFFF  white cards / sidebar
-# border:   #E4E4F0  subtle dividers
-# text:     #111124  near-black
-# muted:    #6B6B88  secondary text
-# subtle:   #AAABB8  placeholder / timestamps
-# accent:   #6B4EFF  violet
-# green:    #16A34A  success / done
-# orange:   #EA580C  firing / warning
-# ──────────────────────────────────────────────────────────────────────────────
+# ─── Design system ────────────────────────────────────────────────────────────
+# bg:         #F7F6FB   warm-tinted light page background
+# surface:    #FFFFFF   card / sidebar surface
+# border:     #EAEAF5   subtle dividers
+# text:       #111124   primary near-black
+# muted:      #5F5F7A   secondary text
+# subtle:     #9898AB   placeholder / labels
+# accent:     #6B4EFF   violet
+# accent-lt:  #F0EEFF   violet tinted fill
+# dark-panel: #111124   image preview background
+# green:      #16A34A   success / done state
+# orange:     #EA580C   in-progress / firing
+# shadow-sm:  layered subtle violet-tinted shadow
+# ─────────────────────────────────────────────────────────────────────────────
 
 STYLES = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 
 html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Page */
-.stApp { background-color: #F5F5FA; }
-.main .block-container { padding: 2rem 2.5rem 4rem; max-width: 900px; }
+/* ── Page ─────────────────────────────────────────── */
+.stApp { background-color: #F7F6FB; }
+.main .block-container { padding: 1.75rem 2.25rem 5rem; max-width: 1180px; }
 
-/* Sidebar */
+/* ── Sidebar ──────────────────────────────────────── */
 [data-testid="stSidebar"] {
     background-color: #FFFFFF !important;
-    border-right: 1px solid #E4E4F0 !important;
+    border-right: 1px solid #EAEAF5 !important;
 }
 [data-testid="stSidebar"] .block-container { padding: 1.5rem 1.25rem; }
 
-/* Tabs */
+/* ── Tabs ─────────────────────────────────────────── */
 .stTabs [data-baseweb="tab-list"] {
     background: transparent;
     gap: 0;
-    border-bottom: 1px solid #E4E4F0;
+    border-bottom: 1px solid #EAEAF5;
     margin-bottom: 1.5rem;
 }
 .stTabs [data-baseweb="tab"] {
     background: transparent !important;
-    color: #AAABB8 !important;
+    color: #9898AB !important;
     font-size: 13px;
     font-weight: 500;
     letter-spacing: 0.01em;
-    padding: 0.55rem 1.1rem;
+    padding: 0.6rem 1.25rem;
     border: none !important;
     border-bottom: 2px solid transparent !important;
     margin-bottom: -1px;
+    transition: color 0.15s;
 }
 .stTabs [aria-selected="true"] {
     color: #111124 !important;
     border-bottom-color: #6B4EFF !important;
     background: transparent !important;
+    font-weight: 600 !important;
 }
 .stTabs [data-baseweb="tab-highlight"] { display: none; }
 
-/* Chat input */
+/* ── Chat input ───────────────────────────────────── */
+[data-testid="stChatInput"] {
+    border-top: 1px solid #EAEAF5 !important;
+    background: #F7F6FB !important;
+    padding: 0.75rem 2.25rem !important;
+}
 [data-testid="stChatInput"] textarea {
     background: #FFFFFF !important;
-    border: 1.5px solid #E4E4F0 !important;
-    border-radius: 10px !important;
+    border: 1.5px solid #EAEAF5 !important;
+    border-radius: 12px !important;
     color: #111124 !important;
     font-size: 14px !important;
+    padding: 0.7rem 1rem !important;
+    box-shadow: 0 1px 4px rgba(17,17,36,0.06) !important;
+    transition: border-color 0.15s, box-shadow 0.15s !important;
 }
 [data-testid="stChatInput"]:focus-within textarea {
     border-color: #6B4EFF !important;
     box-shadow: 0 0 0 3px rgba(107,78,255,0.1) !important;
 }
 
-/* Buttons — primary */
-.stButton > button[kind="primary"],
+/* ── Buttons ──────────────────────────────────────── */
 .stButton > button {
     background: #6B4EFF !important;
     color: #FFFFFF !important;
     border: none !important;
-    border-radius: 8px !important;
-    padding: 0.45rem 1.1rem !important;
+    border-radius: 10px !important;
+    padding: 0.5rem 1.2rem !important;
     font-size: 13px !important;
     font-weight: 500 !important;
-    box-shadow: 0 1px 3px rgba(107,78,255,0.25);
-    transition: background 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.01em !important;
+    box-shadow: 0 1px 3px rgba(107,78,255,0.3), 0 4px 12px rgba(107,78,255,0.15) !important;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.12s !important;
 }
 .stButton > button:hover {
     background: #5A3EEE !important;
-    box-shadow: 0 3px 10px rgba(107,78,255,0.3) !important;
+    box-shadow: 0 2px 6px rgba(107,78,255,0.35), 0 8px 20px rgba(107,78,255,0.2) !important;
+    transform: translateY(-1px) !important;
 }
-/* secondary */
+.stButton > button:active { transform: translateY(0) !important; }
 .stButton > button[kind="secondary"] {
     background: #FFFFFF !important;
-    color: #6B6B88 !important;
-    border: 1.5px solid #E4E4F0 !important;
-    box-shadow: none !important;
+    color: #5F5F7A !important;
+    border: 1.5px solid #EAEAF5 !important;
+    box-shadow: 0 1px 3px rgba(17,17,36,0.06) !important;
 }
 .stButton > button[kind="secondary"]:hover {
     border-color: #6B4EFF !important;
     color: #111124 !important;
+    box-shadow: 0 1px 6px rgba(107,78,255,0.15) !important;
 }
 
-/* Sample chip buttons */
-.stButton > button.sample-chip {
-    background: #FFFFFF !important;
-    color: #6B4EFF !important;
-    border: 1.5px solid #DDD8FF !important;
-    border-radius: 20px !important;
-    padding: 0.3rem 0.9rem !important;
-    font-size: 12px !important;
-    box-shadow: none !important;
-}
-.stButton > button.sample-chip:hover {
-    background: #F0EEFF !important;
-    box-shadow: none !important;
-}
-
-/* Metrics */
+/* ── Metrics ──────────────────────────────────────── */
 [data-testid="stMetric"] {
     background: #FFFFFF;
-    border: 1px solid #E4E4F0;
-    border-radius: 12px;
-    padding: 1rem 1.1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    border: 1px solid #EAEAF5;
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 1px 2px rgba(17,17,36,0.04), 0 4px 14px rgba(107,78,255,0.05);
+    transition: box-shadow 0.2s, transform 0.2s;
 }
 [data-testid="stMetricLabel"] {
     font-size: 10px !important;
     font-weight: 600 !important;
-    letter-spacing: 0.07em !important;
+    letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
-    color: #AAABB8 !important;
+    color: #9898AB !important;
 }
 [data-testid="stMetricValue"] {
-    font-size: 1.6rem !important;
-    font-weight: 600 !important;
+    font-size: 1.75rem !important;
+    font-weight: 700 !important;
     color: #111124 !important;
-    letter-spacing: -0.02em !important;
+    letter-spacing: -0.03em !important;
 }
 
-/* Text input */
-.stTextInput > div > div > input {
+/* ── Text inputs ──────────────────────────────────── */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
     background: #FFFFFF !important;
-    border: 1.5px solid #E4E4F0 !important;
-    border-radius: 8px !important;
+    border: 1.5px solid #EAEAF5 !important;
+    border-radius: 10px !important;
     color: #111124 !important;
     font-size: 14px !important;
-    padding: 0.55rem 0.9rem !important;
+    padding: 0.6rem 0.95rem !important;
+    transition: border-color 0.15s, box-shadow 0.15s !important;
 }
-.stTextInput > div > div > input:focus {
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
     border-color: #6B4EFF !important;
-    box-shadow: 0 0 0 3px rgba(107,78,255,0.1) !important;
+    box-shadow: 0 0 0 3px rgba(107,78,255,0.08) !important;
 }
 
-/* Selectbox */
+/* ── Select / Multiselect ─────────────────────────── */
 [data-testid="stSelectbox"] > div > div {
     background: #FFFFFF !important;
-    border: 1.5px solid #E4E4F0 !important;
-    border-radius: 8px !important;
+    border: 1.5px solid #EAEAF5 !important;
+    border-radius: 10px !important;
     font-size: 13px !important;
-    color: #6B6B88 !important;
 }
 
-/* Expander */
+/* ── Expander ─────────────────────────────────────── */
 details > summary {
     background: #FFFFFF !important;
-    border: 1px solid #E4E4F0 !important;
-    border-radius: 8px !important;
-    color: #6B6B88 !important;
+    border: 1.5px solid #EAEAF5 !important;
+    border-radius: 10px !important;
+    color: #5F5F7A !important;
     font-size: 13px !important;
-    padding: 0.6rem 0.9rem !important;
+    padding: 0.65rem 1rem !important;
+    transition: border-color 0.15s !important;
 }
-details[open] > summary { border-radius: 8px 8px 0 0 !important; }
+details > summary:hover { border-color: #6B4EFF !important; color: #111124 !important; }
+details[open] > summary { border-radius: 10px 10px 0 0 !important; border-color: #6B4EFF !important; }
 details > div {
-    background: #FAFAFA !important;
-    border: 1px solid #E4E4F0 !important;
+    background: #FAFAFE !important;
+    border: 1.5px solid #6B4EFF !important;
     border-top: none !important;
-    border-radius: 0 0 8px 8px !important;
+    border-radius: 0 0 10px 10px !important;
 }
 
-/* Divider */
-hr { border-color: #E4E4F0; margin: 1.25rem 0; }
+/* ── File uploader ────────────────────────────────── */
+[data-testid="stFileUploader"] > section {
+    background: #FAFAFE !important;
+    border: 2px dashed #D8D4F7 !important;
+    border-radius: 14px !important;
+    transition: border-color 0.2s, background 0.2s !important;
+}
+[data-testid="stFileUploader"] > section:hover {
+    border-color: #6B4EFF !important;
+    background: #F5F3FF !important;
+}
+[data-testid="stFileUploaderDropzoneInstructions"] p {
+    font-size: 13px !important;
+    color: #9898AB !important;
+}
 
-/* Alerts */
+/* ── st.pills ─────────────────────────────────────── */
+[data-testid="stPillsGroup"] button {
+    background: #FFFFFF !important;
+    color: #6B4EFF !important;
+    border: 1.5px solid #DDD8FF !important;
+    border-radius: 24px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    padding: 0.3rem 0.95rem !important;
+    transition: all 0.15s !important;
+    box-shadow: none !important;
+}
+[data-testid="stPillsGroup"] button:hover {
+    background: #F0EEFF !important;
+    border-color: #6B4EFF !important;
+}
+[data-testid="stPillsGroup"] button[aria-pressed="true"] {
+    background: #6B4EFF !important;
+    color: #FFFFFF !important;
+    border-color: #6B4EFF !important;
+}
+
+/* ── Form ─────────────────────────────────────────── */
+[data-testid="stForm"] {
+    background: #FFFFFF;
+    border: 1.5px solid #EAEAF5;
+    border-radius: 14px;
+    padding: 1rem 1.25rem 0.75rem;
+    box-shadow: 0 1px 3px rgba(17,17,36,0.04);
+}
+
+/* ── Alerts ───────────────────────────────────────── */
 [data-testid="stAlert"] {
     background: #FFFFFF;
-    border: 1px solid #E4E4F0;
-    border-radius: 10px;
+    border: 1px solid #EAEAF5;
+    border-radius: 12px;
     font-size: 13px;
-    color: #6B6B88;
 }
 
-/* Spinner */
+/* ── Divider ──────────────────────────────────────── */
+hr { border-color: #EAEAF5; margin: 1.5rem 0; }
+
+/* ── Spinner ──────────────────────────────────────── */
 [data-testid="stSpinner"] > div { border-top-color: #6B4EFF !important; }
 
-/* JSON */
-.stJson {
-    background: #FAFAFA !important;
-    border: 1px solid #E4E4F0 !important;
-    border-radius: 8px !important;
-    font-size: 12px !important;
-}
+/* ── Scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #DDDDF0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #AAABB8; }
+
+/* ── Dataframe ────────────────────────────────────── */
+[data-testid="stDataFrame"] { border: 1px solid #EAEAF5 !important; border-radius: 12px !important; }
 </style>
 """
 
@@ -235,21 +288,19 @@ def render_sidebar():
     memory = load_style()
     sig = memory.get("style_signature")
 
+    # Wordmark
     st.sidebar.markdown(
-        '<div style="font-size:20px;font-weight:600;letter-spacing:-0.03em;color:#111124;">'
-        'Stil <span style="color:#6B4EFF;">✦</span></div>'
-        '<div style="font-size:11px;color:#AAABB8;letter-spacing:0.04em;text-transform:uppercase;'
-        'font-weight:500;margin-top:2px;">Your creative style</div>',
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:1.25rem;">'
+        '<span style="font-size:18px;font-weight:700;letter-spacing:-0.04em;color:#111124;">Stil</span>'
+        '<span style="font-size:18px;font-weight:700;color:#6B4EFF;">✦</span>'
+        '</div>',
         unsafe_allow_html=True
     )
 
-    st.sidebar.markdown(
-        '<hr style="border-color:#E4E4F0;margin:1rem 0 0.9rem;">',
-        unsafe_allow_html=True
-    )
+    # Profile section
     st.sidebar.markdown(
         '<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;'
-        'text-transform:uppercase;color:#AAABB8;margin-bottom:0.6rem;">Profile</div>',
+        'text-transform:uppercase;color:#9898AB;margin-bottom:0.5rem;">Style profile</div>',
         unsafe_allow_html=True
     )
 
@@ -258,126 +309,238 @@ def render_sidebar():
         crop = sig.get("crop_preference", "—")
         targets = sig.get("export_targets", [])
         notes = sig.get("notes", "")
-
         filter_style = sig.get("filter_style", "")
-        tone_display = filter_style.capitalize() if filter_style and filter_style != "none" else (tone.capitalize() if tone != "—" else "—")
-        rows = "".join([
-            f'<div style="display:flex;justify-content:space-between;padding:0.45rem 0;'
-            f'border-bottom:1px solid #F0F0F6;font-size:12px;">'
-            f'<span style="color:#AAABB8;font-weight:500;">{k}</span>'
-            f'<span style="color:#111124;font-weight:400;">{v}</span></div>'
+        tone_display = (filter_style.capitalize()
+                        if filter_style and filter_style not in ("none", "")
+                        else (tone.capitalize() if tone != "—" else "—"))
+
+        rows_html = "".join([
+            f'<div style="display:flex;justify-content:space-between;align-items:center;'
+            f'padding:0.4rem 0;border-bottom:1px solid #F2F2F8;">'
+            f'<span style="font-size:11px;color:#9898AB;font-weight:500;">{k}</span>'
+            f'<span style="font-size:12px;color:#111124;font-weight:500;">{v}</span></div>'
             for k, v in [
                 ("Style", tone_display),
-                ("Crop", crop.capitalize() if crop != "—" else "—"),
+                ("Crop", crop.capitalize() if crop not in ("—", "none") else "—"),
                 ("Export", ", ".join(targets) if targets else "—"),
             ]
         ])
         st.sidebar.markdown(
-            f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:10px;'
-            f'padding:0.2rem 0.85rem 0.4rem;">{rows}</div>',
+            f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:12px;'
+            f'padding:0.25rem 0.9rem 0.5rem;box-shadow:0 1px 3px rgba(17,17,36,0.04);">'
+            f'{rows_html}</div>',
             unsafe_allow_html=True
         )
         if notes:
             st.sidebar.markdown(
-                f'<div style="font-size:11px;color:#AAABB8;line-height:1.55;margin-top:0.6rem;">'
-                f'{notes}</div>',
+                f'<div style="font-size:11px;color:#9898AB;line-height:1.55;'
+                f'margin-top:0.55rem;font-style:italic;">{notes}</div>',
                 unsafe_allow_html=True
             )
         updated = memory.get("last_updated", "")
         edit_count = len(memory.get("choices_log", []))
         meta_parts = []
-        if updated:
-            meta_parts.append(f"Updated {updated[:16]}")
         if edit_count:
-            meta_parts.append(f"built from {edit_count} edit{'s' if edit_count != 1 else ''}")
+            meta_parts.append(f"{edit_count} edit{'s' if edit_count != 1 else ''}")
+        if updated:
+            meta_parts.append(f"updated {updated[:10]}")
         if meta_parts:
             st.sidebar.markdown(
-                f'<div style="font-size:10px;color:#CCCCDA;margin-top:0.5rem;">'
+                f'<div style="font-size:10px;color:#C8C8DA;margin-top:0.45rem;">'
                 f'{" · ".join(meta_parts)}</div>',
                 unsafe_allow_html=True
             )
     else:
         st.sidebar.markdown(
-            '<div style="font-size:11px;color:#AAABB8;line-height:2.0;">'
-            '<span style="color:#6B4EFF;font-weight:600;">①</span>'
-            '&nbsp;Upload a photo and describe your edit<br>'
-            '<span style="color:#6B4EFF;font-weight:600;">②</span>'
-            '&nbsp;Stil executes and saves your choices<br>'
-            '<span style="color:#6B4EFF;font-weight:600;">③</span>'
-            '&nbsp;Next session, your style is already applied'
+            '<div style="background:#FAFAFE;border:1.5px dashed #D8D4F7;border-radius:12px;'
+            'padding:1rem 0.9rem;text-align:center;">'
+            '<div style="font-size:1.5rem;margin-bottom:0.4rem;">✦</div>'
+            '<div style="font-size:12px;color:#9898AB;line-height:1.7;">'
+            'Your style profile builds<br>automatically as you edit.</div>'
             '</div>',
             unsafe_allow_html=True
         )
 
-    # ── Color palette ────────────────────────────────────────────────────────
+    # Color palette
     palette = memory.get("color_palette", [])
     if palette:
         st.sidebar.markdown(
-            '<hr style="border-color:#E4E4F0;margin:1rem 0 0.9rem;">'
+            '<hr style="border-color:#EAEAF5;margin:1rem 0 0.75rem;">'
             '<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;'
-            'text-transform:uppercase;color:#AAABB8;margin-bottom:0.55rem;">Color palette</div>',
+            'text-transform:uppercase;color:#9898AB;margin-bottom:0.5rem;">Palette</div>',
             unsafe_allow_html=True
         )
         swatches = "".join(
-            f'<span style="display:inline-block;width:22px;height:22px;border-radius:50%;'
-            f'background:{c};margin-right:5px;border:1px solid rgba(0,0,0,0.08);"></span>'
+            f'<span title="{c}" style="display:inline-block;width:24px;height:24px;'
+            f'border-radius:6px;background:{c};margin-right:5px;'
+            f'border:1px solid rgba(0,0,0,0.08);cursor:pointer;'
+            f'box-shadow:0 1px 3px rgba(0,0,0,0.1);"></span>'
             for c in palette
         )
         st.sidebar.markdown(
-            f'<div style="display:flex;align-items:center;">{swatches}</div>',
+            f'<div style="display:flex;flex-wrap:wrap;align-items:center;">{swatches}</div>',
             unsafe_allow_html=True
         )
 
-    # ── Choices log bar ──────────────────────────────────────────────────────
+    # Choices log (compact)
     choices_log = memory.get("choices_log", [])
     if choices_log:
         st.sidebar.markdown(
-            '<hr style="border-color:#E4E4F0;margin:1rem 0 0.9rem;">'
+            '<hr style="border-color:#EAEAF5;margin:1rem 0 0.75rem;">'
             '<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;'
-            'text-transform:uppercase;color:#AAABB8;margin-bottom:0.55rem;">Choices log</div>',
+            'text-transform:uppercase;color:#9898AB;margin-bottom:0.5rem;">Recent choices</div>',
             unsafe_allow_html=True
         )
-        CHOICE_ICONS = {"filter": "◑", "crop": "⊡", "export": "↗", "brightness": "☀"}
-        for entry in choices_log[:5]:
+        ICONS = {"filter": "◑", "crop": "⊡", "export": "↗", "brightness": "☀"}
+        for entry in choices_log[:3]:
             ts = entry.get("ts", "")
             pills = "".join(
                 f'<span style="display:inline-block;background:rgba(107,78,255,0.07);'
                 f'color:#6B4EFF;border:1px solid rgba(107,78,255,0.15);border-radius:20px;'
                 f'font-size:10px;padding:1px 7px;margin:0 2px 2px 0;">'
-                f'{CHOICE_ICONS.get(k, "·")} {v if k != "brightness" else (f"+{v}" if v > 0 else str(v))}'
+                f'{ICONS.get(k,"·")} {v if k != "brightness" else (f"+{v}" if v > 0 else str(v))}'
                 f'</span>'
                 for k, v in entry.items() if k != "ts"
             )
             st.sidebar.markdown(
-                f'<div style="margin-bottom:0.45rem;">'
-                f'<div style="font-size:10px;color:#CCCCDA;margin-bottom:2px;">{ts}</div>'
-                f'<div style="line-height:1.8;">{pills}</div>'
-                f'</div>',
+                f'<div style="margin-bottom:0.4rem;">'
+                f'<div style="font-size:10px;color:#C8C8DA;margin-bottom:1px;">{ts}</div>'
+                f'{pills}</div>',
                 unsafe_allow_html=True
             )
+
+
+# ─── Preview panel helpers ────────────────────────────────────────────────────
+
+def _preview_style_pills(style: dict) -> str:
+    log = style.get("choices_log", [])
+    recent = log[0] if log else {}
+    sig = style.get("style_signature", {})
+    pills = []
+    if recent.get("filter"):
+        pills.append(f'◑ {recent["filter"]}')
+    elif sig.get("tone") and sig["tone"] not in ("neutral", "—", ""):
+        pills.append(f'◑ {sig["tone"]}')
+    if recent.get("crop"):
+        pills.append(f'⊡ {recent["crop"]}')
+    if recent.get("export"):
+        pills.append(f'↗ {recent["export"]}')
+    if not pills:
+        return ""
+    pill_html = "".join(
+        f'<span style="display:inline-block;background:rgba(255,255,255,0.08);'
+        f'color:#7B7B9A;border:1px solid rgba(255,255,255,0.1);border-radius:16px;'
+        f'font-size:10px;padding:2px 9px;margin:2px 3px 0 0;">{p}</span>'
+        for p in pills
+    )
+    return (
+        f'<div style="margin-top:0.85rem;padding-top:0.75rem;'
+        f'border-top:1px solid rgba(255,255,255,0.06);">'
+        f'<div style="font-size:9px;color:#55556A;text-transform:uppercase;'
+        f'letter-spacing:0.07em;margin-bottom:5px;font-weight:600;">Active style</div>'
+        f'{pill_html}</div>'
+    )
+
+
+def _render_preview_panel():
+    """Dark image preview panel — rendered as a single HTML block with embedded images."""
+    style = load_style()
+    messages = st.session_state.get("messages", [])
+    latest_preview = next(
+        (m for m in reversed(messages) if m.get("preview_after_b64")), None
+    )
+    current_img = st.session_state.get("last_img_bytes")
+
+    if latest_preview:
+        before_b64 = latest_preview["preview_before_b64"]
+        after_b64 = latest_preview["preview_after_b64"]
+        # Most recent tool actions as pills
+        trace = latest_preview.get("tool_trace", [])
+        trace_pills = "".join(
+            f'<span style="display:inline-block;background:rgba(22,163,74,0.15);'
+            f'color:#4ADE80;border:1px solid rgba(22,163,74,0.2);border-radius:16px;'
+            f'font-size:10px;padding:2px 8px;margin:2px 3px 0 0;">✓ {t["tool"]}</span>'
+            for t in trace[:4]
+        )
+        trace_block = (
+            f'<div style="margin-top:0.75rem;padding-top:0.75rem;'
+            f'border-top:1px solid rgba(255,255,255,0.06);">'
+            f'<div style="font-size:9px;color:#55556A;text-transform:uppercase;'
+            f'letter-spacing:0.07em;margin-bottom:5px;font-weight:600;">Applied</div>'
+            f'{trace_pills}</div>'
+        ) if trace else ""
+        st.markdown(
+            f'<div style="background:#0F0F1E;border-radius:16px;padding:1.25rem;'
+            f'box-shadow:0 4px 24px rgba(0,0,0,0.2);">'
+            f'<div style="font-size:9px;color:#44445A;text-transform:uppercase;'
+            f'letter-spacing:0.08em;font-weight:600;margin-bottom:0.75rem;">Preview</div>'
+            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+            f'<div>'
+            f'<div style="font-size:9px;color:#44445A;letter-spacing:0.05em;'
+            f'text-transform:uppercase;margin-bottom:5px;">Before</div>'
+            f'<img src="data:image/jpeg;base64,{before_b64}" '
+            f'style="width:100%;border-radius:8px;display:block;border:1px solid rgba(255,255,255,0.06);">'
+            f'</div>'
+            f'<div>'
+            f'<div style="font-size:9px;color:#9B81FF;letter-spacing:0.05em;'
+            f'text-transform:uppercase;margin-bottom:5px;">After</div>'
+            f'<img src="data:image/jpeg;base64,{after_b64}" '
+            f'style="width:100%;border-radius:8px;display:block;'
+            f'border:1.5px solid rgba(107,78,255,0.35);">'
+            f'</div>'
+            f'</div>'
+            f'{trace_block}'
+            f'{_preview_style_pills(style)}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    elif current_img:
+        img_b64 = base64.b64encode(current_img).decode()
+        st.markdown(
+            f'<div style="background:#0F0F1E;border-radius:16px;padding:1.25rem;'
+            f'box-shadow:0 4px 24px rgba(0,0,0,0.2);">'
+            f'<div style="font-size:9px;color:#44445A;text-transform:uppercase;'
+            f'letter-spacing:0.08em;font-weight:600;margin-bottom:0.75rem;">Photo loaded</div>'
+            f'<img src="data:image/jpeg;base64,{img_b64}" '
+            f'style="width:100%;border-radius:10px;display:block;">'
+            f'{_preview_style_pills(style)}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            '<div style="background:#0F0F1E;border-radius:16px;padding:3.5rem 1.5rem;'
+            'text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.2);">'
+            '<div style="font-size:2.75rem;color:#1E1E38;margin-bottom:0.75rem;">◑</div>'
+            '<div style="font-size:12px;color:#55556A;line-height:1.65;">'
+            'Upload a photo below<br>to see your edits here</div>'
+            '</div>',
+            unsafe_allow_html=True
+        )
 
 
 # ─── Edit Tab ─────────────────────────────────────────────────────────────────
 
 SAMPLE_PROMPTS = [
-    "Make portrait warmer, crop square, export for Instagram",
-    "Apply vintage filter, bump brightness +20",
-    "Crop to 16:9 and export for Twitter",
-    "Moody dramatic look for a dark editorial",
+    "Warm filter, crop square, export for Instagram",
+    "Vintage look with brightness +20",
+    "Dramatic high-contrast, crop portrait",
+    "Cool tones, crop story for TikTok",
 ]
 
 
 def tab_agent():
-    hdr_col, btn_col = st.columns([9, 1])
+    # ── Header ──────────────────────────────────────────────────────────────
+    hdr_col, btn_col = st.columns([10, 1])
     with hdr_col:
         st.markdown(
-            '<p style="font-size:13px;color:#6B6B88;margin:-0.5rem 0 1.25rem;">'
-            'Describe what you want. Stil picks the right tools and remembers your choices.'
+            '<p style="font-size:13px;color:#9898AB;margin:-0.5rem 0 1.25rem;line-height:1.6;">'
+            'Describe your edit. Stil picks the right tools and remembers every choice.'
             '</p>',
             unsafe_allow_html=True
         )
     with btn_col:
-        if st.button("New session", key="new_session"):
+        if st.button("New ↺", key="new_session"):
             for k in ("messages", "session_log", "tool_trace", "api_messages"):
                 st.session_state[k] = []
             st.session_state.session_has_image = False
@@ -385,25 +548,32 @@ def tab_agent():
             st.session_state.img_cycle += 1
             st.rerun()
 
-    # Init session state
-    for key, default in [("messages", []), ("session_log", []), ("tool_trace", []),
-                         ("pill_cycle", 0), ("img_cycle", 0), ("api_messages", []),
-                         ("session_has_image", False), ("last_img_bytes", None),
-                         ("style_just_saved", False)]:
+    # ── Session state init ───────────────────────────────────────────────────
+    for key, default in [
+        ("messages", []), ("session_log", []), ("tool_trace", []),
+        ("pill_cycle", 0), ("img_cycle", 0), ("api_messages", []),
+        ("session_has_image", False), ("last_img_bytes", None),
+        ("style_just_saved", False), ("brief_prompt", ""),
+        ("brief_plan", None),
+    ]:
         if key not in st.session_state:
             st.session_state[key] = default
 
-    # ── Style saved confirmation (shows once after a completed session) ───────
+    # ── Style saved flash ────────────────────────────────────────────────────
     if st.session_state.style_just_saved:
         st.session_state.style_just_saved = False
         st.markdown(
-            '<div style="background:#F0FFF4;border:1px solid #BBF7D0;border-radius:8px;'
-            'padding:0.5rem 1rem;margin-bottom:0.75rem;font-size:12px;color:#166534;">'
-            '✓ Style profile updated — your choices from this session are saved.</div>',
+            '<div style="background:linear-gradient(135deg,#F0FFF4,#ECFDF5);'
+            'border:1px solid #BBF7D0;border-radius:10px;padding:0.55rem 1rem;'
+            'margin-bottom:0.75rem;font-size:12px;color:#166534;'
+            'display:flex;align-items:center;gap:6px;">'
+            '<span style="font-size:14px;">✓</span>'
+            '<span>Style profile updated — your choices from this session are saved.</span>'
+            '</div>',
             unsafe_allow_html=True
         )
 
-    # ── Style active banner (returning users with a profile) ─────────────────
+    # ── Style active banner ──────────────────────────────────────────────────
     _style = load_style()
     _log = _style.get("choices_log", [])
     _sig = _style.get("style_signature", {})
@@ -421,30 +591,31 @@ def tab_agent():
         elif _sig.get("export_targets"):
             _prefs += _sig["export_targets"][:1]
         _prefs_text = " · ".join(_prefs[:3]) if _prefs else "your aesthetic"
-        _count_text = f"built from {len(_log)} edit{'s' if len(_log) != 1 else ''}" if _log else ""
+        _count = f"from {len(_log)} edit{'s' if len(_log) != 1 else ''}" if _log else ""
         st.markdown(
             f'<div style="background:linear-gradient(135deg,#F5F3FF,#EEF5FF);'
-            f'border:1px solid #DDD8FF;border-radius:10px;padding:0.6rem 1rem;'
-            f'margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;">'
-            f'<div style="display:flex;align-items:center;gap:8px;">'
-            f'<span style="color:#6B4EFF;font-size:13px;">✦</span>'
+            f'border:1px solid #DDD8FF;border-radius:10px;padding:0.55rem 1rem;'
+            f'margin-bottom:0.85rem;display:flex;align-items:center;justify-content:space-between;">'
+            f'<div style="display:flex;align-items:center;gap:7px;">'
+            f'<span style="color:#6B4EFF;font-size:12px;font-weight:700;">✦</span>'
             f'<span style="font-size:12px;font-weight:600;color:#2A1A88;">Style active</span>'
-            f'<span style="font-size:12px;color:#6B6B88;margin-left:2px;">{_prefs_text}</span>'
+            f'<span style="font-size:12px;color:#6B6B88;margin-left:1px;">— {_prefs_text}</span>'
             f'</div>'
-            f'<span style="font-size:10px;color:#AAABB8;">{_count_text}</span>'
+            f'<span style="font-size:10px;color:#AAABB8;">{_count}</span>'
             f'</div>',
             unsafe_allow_html=True
         )
 
-    # ── Onboarding card (first-time users only) ──────────────────────────────
+    # ── Onboarding seed card (first-time only) ───────────────────────────────
     if not load_style():
         st.markdown(
-            '<div style="background:linear-gradient(135deg,#F0EEFF,#EEF5FF);border:1px solid #DDD8FF;'
-            'border-radius:12px;padding:1rem 1.25rem 0.75rem;margin-bottom:1.1rem;">'
+            '<div style="background:linear-gradient(135deg,#F0EEFF,#EEF5FF);'
+            'border:1.5px solid #DDD8FF;border-radius:14px;'
+            'padding:1.1rem 1.25rem 0.75rem;margin-bottom:1.1rem;">'
             '<div style="font-size:13px;font-weight:600;color:#2A1A88;margin-bottom:0.2rem;">'
             'Seed your style profile</div>'
-            '<div style="font-size:12px;color:#6B6B88;">Answer 3 quick questions — '
-            'Stil will know your aesthetic from session one.</div>'
+            '<div style="font-size:12px;color:#6B6B88;">'
+            'Answer 3 quick questions — Stil will know your aesthetic from session one.</div>'
             '</div>',
             unsafe_allow_html=True
         )
@@ -472,190 +643,188 @@ def tab_agent():
                     }
                 })
                 st.rerun()
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
 
-    # ── Image uploader ──────────────────────────────────────────────────────
-    st.markdown(
-        '<div style="font-size:10px;font-weight:600;letter-spacing:0.07em;'
-        'text-transform:uppercase;color:#AAABB8;margin-bottom:0.4rem;">Attach a photo</div>',
-        unsafe_allow_html=True
-    )
-    uploaded_file = st.file_uploader(
-        "photo",
-        type=["jpg", "jpeg", "png", "webp"],
-        key=f"img_upload_{st.session_state.img_cycle}",
-        label_visibility="collapsed",
-    )
+    # ── 2-column layout: chat left | preview right ───────────────────────────
+    chat_col, preview_col = st.columns([56, 44], gap="large")
 
-    if uploaded_file:
-        prev_col, info_col = st.columns([1, 5])
-        with prev_col:
-            st.image(uploaded_file, use_container_width=True)
-        with info_col:
-            st.markdown(
-                f'<div style="font-size:12px;color:#6B6B88;padding-top:0.3rem;">'
-                f'{uploaded_file.name}</div>'
-                f'<div style="font-size:11px;color:#AAABB8;">'
-                f'{round(uploaded_file.size / 1024)} KB · {uploaded_file.type}</div>',
-                unsafe_allow_html=True
-            )
-    elif st.session_state.session_has_image:
+    with chat_col:
+        # Upload zone
         st.markdown(
-            '<div style="font-size:11px;color:#AAABB8;padding:0.35rem 0;">'
-            '↑ Using photo from this session — upload a new one to switch</div>',
+            '<div style="font-size:10px;font-weight:600;letter-spacing:0.07em;'
+            'text-transform:uppercase;color:#9898AB;margin-bottom:0.4rem;">Attach photo</div>',
             unsafe_allow_html=True
         )
-
-    st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
-
-    # ── Sample prompts ───────────────────────────────────────────────────────
-    selected_sample = st.pills(
-        "Try a prompt",
-        SAMPLE_PROMPTS,
-        key=f"sample_pills_{st.session_state.pill_cycle}",
-        label_visibility="collapsed",
-    )
-
-    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-
-    # ── Brief-to-Edit Translator ─────────────────────────────────────────────
-    if "brief_prompt" not in st.session_state:
-        st.session_state.brief_prompt = ""
-    if "brief_plan" not in st.session_state:
-        st.session_state.brief_plan = None
-
-    with st.expander("Generate from brief", expanded=False):
-        st.markdown(
-            '<div style="font-size:12px;color:#6B6B88;margin-bottom:0.6rem;">'
-            'Describe the creative direction — Stil translates it into an edit command.</div>',
-            unsafe_allow_html=True
+        uploaded_file = st.file_uploader(
+            "photo",
+            type=["jpg", "jpeg", "png", "webp"],
+            key=f"img_upload_{st.session_state.img_cycle}",
+            label_visibility="collapsed",
         )
-        brief_text = st.text_area(
-            "brief", height=68, label_visibility="collapsed",
-            placeholder="Moody editorial for a luxury brand — cool tones, high contrast, portrait crop…",
-            key="brief_input"
-        )
-        b_col1, b_col2 = st.columns([2, 6])
-        with b_col1:
-            gen_clicked = st.button("Generate plan", key="gen_brief")
-        if gen_clicked and brief_text.strip():
-            with st.spinner("Translating brief…"):
-                plan = translate_brief_to_edits(brief_text.strip())
-            st.session_state.brief_plan = plan
-
-        plan = st.session_state.brief_plan
-        if plan:
-            rationale = plan.get("rationale", "")
-            cmd = format_edit_plan(plan)
-            if rationale:
+        if uploaded_file:
+            fi_col1, fi_col2 = st.columns([1, 5])
+            with fi_col1:
+                st.image(uploaded_file, use_container_width=True)
+            with fi_col2:
                 st.markdown(
-                    f'<div style="font-size:12px;color:#6B4EFF;font-style:italic;'
-                    f'margin-bottom:0.5rem;">"{rationale}"</div>',
+                    f'<div style="font-size:12px;color:#5F5F7A;padding-top:0.2rem;'
+                    f'font-weight:500;">{uploaded_file.name}</div>'
+                    f'<div style="font-size:11px;color:#9898AB;">'
+                    f'{round(uploaded_file.size / 1024)} KB</div>',
                     unsafe_allow_html=True
                 )
-            pills_html = "".join([
-                f'<span style="display:inline-block;background:rgba(107,78,255,0.07);'
-                f'color:#6B4EFF;border:1px solid rgba(107,78,255,0.18);border-radius:20px;'
-                f'font-size:11px;font-weight:500;padding:3px 10px;margin:2px 3px 2px 0;">'
-                f'{k}: {v}</span>'
-                for k, v in {
-                    "Filter": plan.get("filter", "—"),
-                    "Brightness": f"{plan.get('brightness', 0):+d}" if plan.get("brightness") else "—",
-                    "Contrast": f"{plan.get('contrast', 0):+d}" if plan.get("contrast") else "—",
-                    "Crop": plan.get("crop", "—"),
-                    "Platform": plan.get("platform", "—"),
-                }.items() if v and v != "none" and v != "—"
-            ])
+        elif st.session_state.session_has_image:
             st.markdown(
-                f'<div style="margin-bottom:0.5rem;">{pills_html}</div>',
+                '<div style="font-size:11px;color:#9898AB;padding:0.3rem 0 0.15rem;">'
+                '↑ Using photo from this session</div>',
                 unsafe_allow_html=True
             )
-            with b_col2:
-                if st.button("Send to editor →", key="send_brief"):
-                    st.session_state.brief_prompt = cmd
-                    st.session_state.brief_plan = None
-                    st.rerun()
 
-    st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
-    # ── Chat history ─────────────────────────────────────────────────────────
-    for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            img_html = ""
-            if msg.get("image_b64"):
-                img_html = (
-                    f'<img src="data:{msg["image_media_type"]};base64,{msg["image_b64"]}" '
-                    f'style="max-width:220px;max-height:160px;border-radius:8px;'
-                    f'display:block;margin-bottom:6px;">'
-                )
+        # Sample prompts
+        selected_sample = st.pills(
+            "Try",
+            SAMPLE_PROMPTS,
+            key=f"sample_pills_{st.session_state.pill_cycle}",
+            label_visibility="collapsed",
+        )
+
+        st.markdown("<div style='height:0.35rem'></div>", unsafe_allow_html=True)
+
+        # Brief-to-Edit expander
+        with st.expander("✦ Generate from brief", expanded=False):
             st.markdown(
-                f'<div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem;">'
-                f'<div style="background:#EEE9FF;border:1px solid #DDD8FF;border-radius:14px 14px 3px 14px;'
-                f'padding:0.6rem 0.95rem;font-size:14px;color:#2A1A88;line-height:1.55;max-width:82%;">'
-                f'{img_html}{msg["content"]}</div></div>',
+                '<div style="font-size:12px;color:#5F5F7A;margin-bottom:0.6rem;padding:0.5rem 0 0;">'
+                'Paste a creative direction — Stil translates it into an edit command.</div>',
                 unsafe_allow_html=True
             )
-        else:
-            if msg.get("is_error"):
+            brief_text = st.text_area(
+                "brief", height=72, label_visibility="collapsed",
+                placeholder="Moody editorial for a luxury brand — cool tones, high contrast, portrait for instagram…",
+                key="brief_input"
+            )
+            bbc1, bbc2 = st.columns([2, 6])
+            with bbc1:
+                gen_clicked = st.button("Generate", key="gen_brief")
+            if gen_clicked and brief_text.strip():
+                with st.spinner("Translating brief…"):
+                    plan = translate_brief_to_edits(brief_text.strip())
+                st.session_state.brief_plan = plan
+
+            plan = st.session_state.brief_plan
+            if plan:
+                rationale = plan.get("rationale", "")
+                if rationale:
+                    st.markdown(
+                        f'<div style="font-size:12px;color:#6B4EFF;font-style:italic;'
+                        f'margin:0.5rem 0 0.4rem;">"{rationale}"</div>',
+                        unsafe_allow_html=True
+                    )
+                pills_html = "".join([
+                    f'<span style="display:inline-block;background:rgba(107,78,255,0.07);'
+                    f'color:#6B4EFF;border:1px solid rgba(107,78,255,0.18);border-radius:20px;'
+                    f'font-size:11px;font-weight:500;padding:3px 10px;margin:2px 3px 2px 0;">'
+                    f'{k}: {v}</span>'
+                    for k, v in {
+                        "Filter": plan.get("filter", ""),
+                        "Brightness": f"{plan.get('brightness', 0):+d}" if plan.get("brightness") else "",
+                        "Contrast": f"{plan.get('contrast', 0):+d}" if plan.get("contrast") else "",
+                        "Crop": plan.get("crop", ""),
+                        "Platform": plan.get("platform", ""),
+                    }.items() if v and v not in ("none", "")
+                ])
+                st.markdown(f'<div style="margin-bottom:0.4rem;">{pills_html}</div>', unsafe_allow_html=True)
+                with bbc2:
+                    if st.button("Send to editor →", key="send_brief"):
+                        st.session_state.brief_prompt = format_edit_plan(plan)
+                        st.session_state.brief_plan = None
+                        st.rerun()
+
+        st.markdown("<div style='height:0.35rem'></div>", unsafe_allow_html=True)
+
+        # Prompt resolution from pills / brief
+        user_input_override = None
+        if selected_sample:
+            user_input_override = selected_sample
+            st.session_state.pill_cycle += 1
+        if not user_input_override and st.session_state.get("brief_prompt"):
+            user_input_override = st.session_state.brief_prompt
+            st.session_state.brief_prompt = ""
+
+        # Chat history
+        if not st.session_state.messages:
+            st.markdown(
+                '<div style="text-align:center;padding:2.5rem 1rem;color:#9898AB;">'
+                '<div style="font-size:1.75rem;color:#D8D4F7;margin-bottom:0.5rem;">✦</div>'
+                '<div style="font-size:13px;color:#AAABB8;">Your conversation will appear here.</div>'
+                '</div>',
+                unsafe_allow_html=True
+            )
+
+        for msg in st.session_state.messages:
+            if msg["role"] == "user":
+                img_html = ""
+                if msg.get("image_b64"):
+                    img_html = (
+                        f'<img src="data:{msg["image_media_type"]};base64,{msg["image_b64"]}" '
+                        f'style="max-width:180px;max-height:130px;border-radius:8px;'
+                        f'display:block;margin-bottom:5px;border:1px solid rgba(255,255,255,0.15);">'
+                    )
                 st.markdown(
-                    f'<div style="margin-bottom:0.75rem;">'
-                    f'<div style="background:#FFF5F5;border:1px solid #FECACA;border-radius:10px;'
-                    f'padding:0.65rem 1rem;font-size:13px;color:#991B1B;line-height:1.6;max-width:88%;">'
-                    f'⚠ {msg["content"]}</div></div>',
+                    f'<div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem;">'
+                    f'<div style="background:linear-gradient(135deg,#7B62FF,#6B4EFF);'
+                    f'border-radius:18px 18px 4px 18px;padding:0.65rem 1rem;font-size:14px;'
+                    f'color:#FFFFFF;line-height:1.55;max-width:82%;'
+                    f'box-shadow:0 2px 8px rgba(107,78,255,0.28);">'
+                    f'{img_html}{msg["content"]}</div></div>',
                     unsafe_allow_html=True
                 )
             else:
-                tool_pills_html = ""
-                if msg.get("tool_trace"):
-                    pills = " ".join(
-                        f'<span style="display:inline-flex;align-items:center;gap:4px;'
-                        f'background:rgba(22,163,74,0.08);color:#16A34A;border:1px solid rgba(22,163,74,0.18);'
-                        f'border-radius:20px;padding:2px 10px 2px 8px;font-size:11px;font-weight:500;">'
-                        f'✓ {t["tool"]}</span>'
-                        f'<span style="font-size:11px;color:#AAABB8;">→ {t["result"].get("action","done")}</span>'
-                        for t in msg["tool_trace"]
+                if msg.get("is_error"):
+                    st.markdown(
+                        f'<div style="margin-bottom:0.85rem;">'
+                        f'<div style="background:#FFF5F5;border:1px solid #FECACA;border-radius:10px;'
+                        f'padding:0.65rem 1rem;font-size:13px;color:#991B1B;line-height:1.6;max-width:88%;">'
+                        f'⚠ {msg["content"]}</div></div>',
+                        unsafe_allow_html=True
                     )
-                    tool_pills_html = f'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">{pills}</div>'
-                st.markdown(
-                    f'<div style="margin-bottom:0.75rem;">{tool_pills_html}'
-                    f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:3px 14px 14px 14px;'
-                    f'padding:0.65rem 1rem;font-size:14px;color:#2A2A3E;line-height:1.65;max-width:88%;'
-                    f'box-shadow:0 1px 3px rgba(0,0,0,0.04);">'
-                    f'{msg["content"]}</div></div>',
-                    unsafe_allow_html=True
-                )
-                if msg.get("preview_before_b64") and msg.get("preview_after_b64"):
-                    prev_col1, prev_col2 = st.columns(2)
-                    with prev_col1:
-                        st.markdown(
-                            '<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
-                            'text-transform:uppercase;color:#AAABB8;margin-bottom:4px;">Before</div>',
-                            unsafe_allow_html=True
+                else:
+                    tool_pills_html = ""
+                    if msg.get("tool_trace"):
+                        pills = " ".join(
+                            f'<span style="display:inline-flex;align-items:center;gap:4px;'
+                            f'background:rgba(22,163,74,0.08);color:#16A34A;'
+                            f'border:1px solid rgba(22,163,74,0.18);border-radius:20px;'
+                            f'padding:2px 10px 2px 8px;font-size:11px;font-weight:500;">'
+                            f'✓ {t["tool"]}</span>'
+                            f'<span style="font-size:11px;color:#9898AB;">→ {t["result"].get("action","done")}</span>'
+                            for t in msg["tool_trace"]
                         )
-                        st.image(base64.b64decode(msg["preview_before_b64"]), use_container_width=True)
-                    with prev_col2:
-                        st.markdown(
-                            '<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
-                            'text-transform:uppercase;color:#AAABB8;margin-bottom:4px;">After</div>',
-                            unsafe_allow_html=True
+                        tool_pills_html = (
+                            f'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;">{pills}</div>'
                         )
-                        st.image(base64.b64decode(msg["preview_after_b64"]), use_container_width=True)
+                    st.markdown(
+                        f'<div style="margin-bottom:0.85rem;">{tool_pills_html}'
+                        f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;'
+                        f'border-radius:4px 18px 18px 18px;padding:0.7rem 1.05rem;'
+                        f'font-size:14px;color:#111124;line-height:1.65;max-width:90%;'
+                        f'box-shadow:0 1px 3px rgba(17,17,36,0.04),0 4px 12px rgba(107,78,255,0.05);">'
+                        f'{msg["content"]}</div></div>',
+                        unsafe_allow_html=True
+                    )
 
-    # Chat input
+    with preview_col:
+        _render_preview_panel()
+
+    # ── Chat input (full-width at bottom) ────────────────────────────────────
     user_input = st.chat_input("What do you want to do with your photo?")
 
-    # Use selected pill as input (increment cycle to reset pills after use)
-    if selected_sample and not user_input:
-        user_input = selected_sample
-        st.session_state.pill_cycle += 1
-
-    # Use brief-generated prompt if "Send to editor" was clicked
-    if not user_input and st.session_state.get("brief_prompt"):
-        user_input = st.session_state.brief_prompt
-        st.session_state.brief_prompt = ""
+    # Apply override from pills or brief
+    if user_input_override and not user_input:
+        user_input = user_input_override
 
     if user_input:
-        # Capture image before session state is mutated
         img_bytes = None
         img_media_type = "image/jpeg"
         img_b64 = None
@@ -674,18 +843,20 @@ def tab_agent():
         })
         st.session_state.session_log.append({"role": "user", "content": user_input})
 
-        # Show user bubble immediately (with thumbnail if image attached)
+        # Show user bubble immediately
         img_html = ""
         if img_b64:
             img_html = (
                 f'<img src="data:{img_media_type};base64,{img_b64}" '
-                f'style="max-width:220px;max-height:160px;border-radius:8px;'
-                f'display:block;margin-bottom:6px;">'
+                f'style="max-width:180px;max-height:130px;border-radius:8px;'
+                f'display:block;margin-bottom:5px;border:1px solid rgba(255,255,255,0.15);">'
             )
         st.markdown(
-            f'<div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem;">'
-            f'<div style="background:#EEE9FF;border:1px solid #DDD8FF;border-radius:14px 14px 3px 14px;'
-            f'padding:0.6rem 0.95rem;font-size:14px;color:#2A1A88;line-height:1.55;max-width:82%;">'
+            f'<div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem;">'
+            f'<div style="background:linear-gradient(135deg,#7B62FF,#6B4EFF);'
+            f'border-radius:18px 18px 4px 18px;padding:0.65rem 1rem;font-size:14px;'
+            f'color:#FFFFFF;line-height:1.55;max-width:82%;'
+            f'box-shadow:0 2px 8px rgba(107,78,255,0.28);">'
             f'{img_html}{user_input}</div></div>',
             unsafe_allow_html=True
         )
@@ -707,63 +878,64 @@ def tab_agent():
             if event["type"] == "tool_start":
                 pill = (
                     f'<span style="display:inline-flex;align-items:center;gap:4px;'
-                    f'background:rgba(234,88,12,0.07);color:#EA580C;border:1px solid rgba(234,88,12,0.18);'
-                    f'border-radius:20px;padding:2px 10px 2px 8px;font-size:11px;font-weight:500;">'
+                    f'background:rgba(234,88,12,0.08);color:#EA580C;'
+                    f'border:1px solid rgba(234,88,12,0.2);border-radius:20px;'
+                    f'padding:2px 10px 2px 8px;font-size:11px;font-weight:500;">'
                     f'⚡ {event["tool"]}</span> '
                 )
                 current_pills_html += pill
                 tool_placeholder.markdown(
-                    f'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">'
+                    f'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'
                     f'{current_pills_html}</div>',
                     unsafe_allow_html=True
                 )
-
             elif event["type"] == "tool_end":
                 action = event["result"].get("action", "done")
                 current_pills_html = current_pills_html.replace(
-                    f'background:rgba(234,88,12,0.07);color:#EA580C;border:1px solid rgba(234,88,12,0.18);'
-                    f'border-radius:20px;padding:2px 10px 2px 8px;font-size:11px;font-weight:500;">'
+                    f'background:rgba(234,88,12,0.08);color:#EA580C;'
+                    f'border:1px solid rgba(234,88,12,0.2);border-radius:20px;'
+                    f'padding:2px 10px 2px 8px;font-size:11px;font-weight:500;">'
                     f'⚡ {event["tool"]}</span>',
-                    f'background:rgba(22,163,74,0.08);color:#16A34A;border:1px solid rgba(22,163,74,0.18);'
-                    f'border-radius:20px;padding:2px 10px 2px 8px;font-size:11px;font-weight:500;">'
+                    f'background:rgba(22,163,74,0.08);color:#16A34A;'
+                    f'border:1px solid rgba(22,163,74,0.18);border-radius:20px;'
+                    f'padding:2px 10px 2px 8px;font-size:11px;font-weight:500;">'
                     f'✓ {event["tool"]}</span>'
-                    f'<span style="font-size:11px;color:#AAABB8;"> → {action}</span>'
+                    f'<span style="font-size:11px;color:#9898AB;"> → {action}</span>'
                 )
                 tool_placeholder.markdown(
-                    f'<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">'
+                    f'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">'
                     f'{current_pills_html}</div>',
                     unsafe_allow_html=True
                 )
-                session_tool_trace.append({"tool": event["tool"], "input": event.get("input", {}), "result": event["result"]})
-
+                session_tool_trace.append({
+                    "tool": event["tool"],
+                    "input": event.get("input", {}),
+                    "result": event["result"],
+                })
             elif event["type"] == "text":
                 full_response += event["content"]
                 response_placeholder.markdown(
-                    f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;'
-                    f'border-radius:3px 14px 14px 14px;padding:0.65rem 1rem;font-size:14px;'
-                    f'color:#2A2A3E;line-height:1.65;max-width:88%;'
-                    f'box-shadow:0 1px 3px rgba(0,0,0,0.04);">'
+                    f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;'
+                    f'border-radius:4px 18px 18px 18px;padding:0.7rem 1.05rem;font-size:14px;'
+                    f'color:#111124;line-height:1.65;max-width:90%;'
+                    f'box-shadow:0 1px 3px rgba(17,17,36,0.04),0 4px 12px rgba(107,78,255,0.05);">'
                     f'{full_response}</div>',
                     unsafe_allow_html=True
                 )
-
             elif event["type"] == "error":
                 had_error = True
                 full_response = event["content"]
                 response_placeholder.markdown(
                     f'<div style="background:#FFF5F5;border:1px solid #FECACA;'
                     f'border-radius:10px;padding:0.75rem 1rem;font-size:13px;'
-                    f'color:#991B1B;line-height:1.6;">'
-                    f'⚠ {event["content"]}</div>',
+                    f'color:#991B1B;line-height:1.6;">⚠ {event["content"]}</div>',
                     unsafe_allow_html=True
                 )
-
             elif event["type"] == "done":
                 st.session_state.tool_trace.extend(event.get("tool_trace", []))
                 new_api_messages = event.get("api_messages", [])
 
         if not had_error:
-            # Build message dict — include before/after preview if a photo was uploaded
             assistant_msg = {
                 "role": "assistant",
                 "content": full_response,
@@ -781,19 +953,16 @@ def tab_agent():
 
             st.session_state.messages.append(assistant_msg)
             st.session_state.session_log.append({"role": "assistant", "content": full_response})
-            # Persist full Claude API conversation history for next turn
             st.session_state.api_messages = new_api_messages
             if img_bytes:
                 st.session_state.session_has_image = True
                 current_style = load_style()
-                # Extract color palette
                 try:
                     palette = extract_color_palette(img_bytes)
                     if palette:
                         current_style["color_palette"] = palette
                 except Exception:
                     pass
-                # Extract EXIF camera profile
                 try:
                     exif = extract_exif(img_bytes)
                     if exif:
@@ -805,18 +974,16 @@ def tab_agent():
             update_choices_log(session_tool_trace, updated)
             write_session_log(st.session_state.session_log, st.session_state.tool_trace)
             st.session_state.style_just_saved = True
-            # Reset uploader so a new photo can be attached next turn
             st.session_state.img_cycle += 1
             st.rerun()
         else:
-            # Keep user message in history; add error as assistant reply; don't log
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": full_response,
                 "is_error": True,
-                "tool_trace": []
+                "tool_trace": [],
             })
-            st.session_state.session_log.pop()  # remove from log only
+            st.session_state.session_log.pop()
             st.rerun()
 
 
@@ -824,8 +991,8 @@ def tab_agent():
 
 def tab_memory():
     st.markdown(
-        '<p style="font-size:13px;color:#6B6B88;margin:-0.5rem 0 1.25rem;">'
-        'What Stil remembers about you — injected automatically into every new session.'
+        '<p style="font-size:13px;color:#9898AB;margin:-0.5rem 0 1.25rem;">'
+        'What Stil remembers about you — injected into every new session automatically.'
         '</p>',
         unsafe_allow_html=True
     )
@@ -835,9 +1002,10 @@ def tab_memory():
 
     if not sig:
         _empty_state("✦", "No style profile yet",
-                     "Go to the Edit tab and have a conversation.<br>Stil extracts preferences automatically.")
+                     "Have a conversation in the Edit tab.<br>Stil extracts your preferences automatically.")
         return
 
+    # Metric cards
     c1, c2, c3 = st.columns(3)
     with c1:
         st.metric("Tone", sig.get("tone", "—").capitalize())
@@ -845,54 +1013,60 @@ def tab_memory():
         st.metric("Crop", sig.get("crop_preference", "—").capitalize())
     with c3:
         targets = sig.get("export_targets", [])
-        st.metric("Export targets", str(len(targets)))
+        st.metric("Platforms", str(len(targets)) if targets else "—")
 
     st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
 
+    # Export platforms as pills
     if targets:
         st.markdown(_section_label("Export platforms"), unsafe_allow_html=True)
-        pills = " ".join(_tag_pill(t) for t in targets)
-        st.markdown(pills, unsafe_allow_html=True)
+        st.markdown(" ".join(_tag_pill(t) for t in targets), unsafe_allow_html=True)
         st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
+    # Color palette
     if memory.get("color_palette"):
         st.markdown(_section_label("Color palette"), unsafe_allow_html=True)
         swatches = "".join(
-            f'<span style="display:inline-block;width:34px;height:34px;border-radius:8px;'
-            f'background:{c};margin-right:8px;border:1px solid rgba(0,0,0,0.08);"></span>'
+            f'<span style="display:inline-block;width:36px;height:36px;border-radius:10px;'
+            f'background:{c};margin-right:8px;border:1px solid rgba(0,0,0,0.07);'
+            f'box-shadow:0 2px 6px rgba(0,0,0,0.1);"></span>'
             for c in memory["color_palette"]
         )
-        st.markdown(f'<div style="display:flex;align-items:center;">{swatches}</div>',
+        st.markdown(f'<div style="display:flex;flex-wrap:wrap;align-items:center;">{swatches}</div>',
                     unsafe_allow_html=True)
         st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
+    # Camera profile
     camera = memory.get("camera_profile", {})
     if camera:
         st.markdown(_section_label("Camera profile"), unsafe_allow_html=True)
         cam_rows = "".join([
-            f'<div style="display:flex;justify-content:space-between;padding:0.4rem 0;'
-            f'border-bottom:1px solid #F0F0F6;font-size:12px;">'
-            f'<span style="color:#AAABB8;font-weight:500;">{k.replace("_", " ").capitalize()}</span>'
-            f'<span style="color:#111124;">{v}</span></div>'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;'
+            f'padding:0.4rem 0;border-bottom:1px solid #F2F2F8;font-size:12px;">'
+            f'<span style="color:#9898AB;font-weight:500;">{k.replace("_"," ").capitalize()}</span>'
+            f'<span style="color:#111124;font-weight:500;">{v}</span></div>'
             for k, v in camera.items()
         ])
         st.markdown(
-            f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:10px;'
-            f'padding:0.2rem 0.85rem 0.4rem;">{cam_rows}</div>',
+            f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:12px;'
+            f'padding:0.25rem 0.9rem 0.5rem;box-shadow:0 1px 3px rgba(17,17,36,0.04);">'
+            f'{cam_rows}</div>',
             unsafe_allow_html=True
         )
         st.markdown(
-            '<div style="font-size:11px;color:#AAABB8;margin-top:0.4rem;line-height:1.5;">'
-            'Extracted from image EXIF — informs editing recommendations.</div>',
+            '<div style="font-size:11px;color:#9898AB;margin-top:0.4rem;">'
+            'Read from image EXIF — informs noise-aware editing suggestions.</div>',
             unsafe_allow_html=True
         )
         st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
 
+    # Aesthetic summary
     if sig.get("notes"):
-        st.markdown(_section_label("Summary"), unsafe_allow_html=True)
+        st.markdown(_section_label("Aesthetic summary"), unsafe_allow_html=True)
         st.markdown(
-            f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:10px;'
-            f'padding:0.85rem 1rem;font-size:14px;color:#3A3A5C;line-height:1.7;">'
+            f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:12px;'
+            f'padding:0.9rem 1.1rem;font-size:14px;color:#3A3A5C;line-height:1.7;'
+            f'box-shadow:0 1px 3px rgba(17,17,36,0.04);">'
             f'{sig["notes"]}</div>',
             unsafe_allow_html=True
         )
@@ -900,18 +1074,17 @@ def tab_memory():
 
     if memory.get("last_updated"):
         st.markdown(
-            f'<div style="font-size:11px;color:#CCCCDA;">Last updated: {memory["last_updated"][:16]}</div>',
+            f'<div style="font-size:11px;color:#C8C8DA;">Last updated {memory["last_updated"][:16]}</div>',
             unsafe_allow_html=True
         )
 
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # ── Edit profile form ────────────────────────────────────────────────────
+    # Profile editor
     st.markdown(_section_label("Edit profile"), unsafe_allow_html=True)
     tone_options = ["warm", "cool", "neutral"]
     crop_options = ["square", "portrait", "landscape", "story", "none"]
     platform_options = ["instagram", "tiktok", "twitter", "linkedin", "web", "print"]
-
     tone_val = sig.get("tone", "neutral")
     crop_val = sig.get("crop_preference", "none")
     targets_val = sig.get("export_targets", [])
@@ -920,21 +1093,14 @@ def tab_memory():
     with st.form("edit_profile_form"):
         ed1, ed2 = st.columns(2)
         with ed1:
-            new_tone = st.selectbox(
-                "Tone", tone_options,
-                index=tone_options.index(tone_val) if tone_val in tone_options else 2
-            )
-            new_crop = st.selectbox(
-                "Crop", crop_options,
-                index=crop_options.index(crop_val) if crop_val in crop_options else 4
-            )
+            new_tone = st.selectbox("Tone", tone_options,
+                index=tone_options.index(tone_val) if tone_val in tone_options else 2)
+            new_crop = st.selectbox("Crop", crop_options,
+                index=crop_options.index(crop_val) if crop_val in crop_options else 4)
         with ed2:
-            new_targets = st.multiselect(
-                "Export targets", platform_options,
-                default=[t for t in targets_val if t in platform_options]
-            )
+            new_targets = st.multiselect("Export targets", platform_options,
+                default=[t for t in targets_val if t in platform_options])
             new_notes = st.text_area("Aesthetic notes", value=notes_val, height=88)
-
         if st.form_submit_button("Save changes"):
             memory["style_signature"] = {
                 **(memory.get("style_signature") or {}),
@@ -952,29 +1118,28 @@ def tab_memory():
     with st.expander("Raw style_profile.json"):
         st.json(memory)
 
-    # ── Brand Switcher ───────────────────────────────────────────────────────
+    # Brand switcher
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown(_section_label("Saved brands"), unsafe_allow_html=True)
     st.markdown(
-        '<div style="font-size:12px;color:#6B6B88;margin-bottom:0.75rem;">'
-        'Save named style profiles — switch between clients or campaigns instantly.</div>',
+        '<div style="font-size:12px;color:#9898AB;margin-bottom:0.75rem;">'
+        'Save named style profiles — switch between clients or campaigns in one click.</div>',
         unsafe_allow_html=True
     )
-
     brands = memory.get("brands", {})
-
     if brands:
         for brand_name, brand_data in list(brands.items()):
-            b1, b2, b3 = st.columns([4, 1, 1])
+            b1, b2, b3 = st.columns([5, 1, 1])
             with b1:
                 b_sig = brand_data.get("style_signature", {})
                 b_tone = b_sig.get("tone", "—")
                 b_targets = ", ".join(b_sig.get("export_targets", [])) or "—"
                 st.markdown(
-                    f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:8px;'
-                    f'padding:0.5rem 0.85rem;font-size:12px;">'
+                    f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:10px;'
+                    f'padding:0.5rem 0.9rem;font-size:12px;'
+                    f'box-shadow:0 1px 3px rgba(17,17,36,0.04);">'
                     f'<span style="font-weight:600;color:#111124;">{brand_name}</span>'
-                    f'<span style="color:#AAABB8;margin-left:8px;">{b_tone} · {b_targets}</span>'
+                    f'<span style="color:#9898AB;margin-left:8px;">{b_tone} · {b_targets}</span>'
                     f'</div>',
                     unsafe_allow_html=True
                 )
@@ -987,24 +1152,23 @@ def tab_memory():
                     st.success(f"Loaded {brand_name}")
                     st.rerun()
             with b3:
-                if st.button("Delete", key=f"del_brand_{brand_name}"):
+                if st.button("×", key=f"del_brand_{brand_name}"):
                     del memory["brands"][brand_name]
                     save_style(memory)
                     st.rerun()
     else:
         st.markdown(
-            '<div style="font-size:12px;color:#AAABB8;margin-bottom:0.5rem;">'
-            'No saved brands yet.</div>',
+            '<div style="font-size:12px;color:#C8C8DA;margin-bottom:0.4rem;">No saved brands yet.</div>',
             unsafe_allow_html=True
         )
 
     with st.form("save_brand_form"):
         br1, br2 = st.columns([4, 1])
         with br1:
-            brand_input = st.text_input("Brand name", placeholder="Summer campaign, Brand B…",
-                                        label_visibility="collapsed")
+            brand_input = st.text_input("Brand name",
+                placeholder="Summer campaign, Brand B…", label_visibility="collapsed")
         with br2:
-            if st.form_submit_button("Save brand"):
+            if st.form_submit_button("Save"):
                 if brand_input.strip():
                     if "brands" not in memory:
                         memory["brands"] = {}
@@ -1013,7 +1177,7 @@ def tab_memory():
                         "choices_log": memory.get("choices_log", []),
                     }
                     save_style(memory)
-                    st.success(f"Saved as \"{brand_input.strip()}\"")
+                    st.success(f'Saved as "{brand_input.strip()}"')
                     st.rerun()
 
     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
@@ -1030,7 +1194,7 @@ def tab_memory():
 
 def tab_evals():
     st.markdown(
-        '<p style="font-size:13px;color:#6B6B88;margin:-0.5rem 0 1.25rem;">'
+        '<p style="font-size:13px;color:#9898AB;margin:-0.5rem 0 1.25rem;">'
         'Grade sessions on tool accuracy, goal completion, and creative intent.'
         '</p>',
         unsafe_allow_html=True
@@ -1039,19 +1203,19 @@ def tab_evals():
     log_count = len([f for f in os.listdir("logs") if f.endswith(".jsonl")]) \
         if os.path.exists("logs") else 0
 
-    col_btn, col_info = st.columns([1, 4])
+    col_btn, col_info = st.columns([1, 5])
     with col_btn:
         run_clicked = st.button("Run evals", type="primary", use_container_width=True)
     with col_info:
         st.markdown(
-            f'<div style="font-size:13px;color:#AAABB8;padding-top:0.55rem;">'
+            f'<div style="font-size:13px;color:#9898AB;padding-top:0.5rem;">'
             f'{log_count} session log{"s" if log_count != 1 else ""} available</div>',
             unsafe_allow_html=True
         )
 
     if run_clicked:
         if log_count == 0:
-            st.warning("No session logs found. Complete a chat session in the Edit tab first.")
+            st.warning("No session logs yet. Complete a chat session in the Edit tab first.")
         else:
             with st.spinner("Grading with Haiku…"):
                 from insights import run_insights
@@ -1060,7 +1224,6 @@ def tab_evals():
             st.rerun()
 
     result = st.session_state.get("eval_result")
-
     if not result:
         _empty_state("◎", "No eval data yet",
                      "Run evals after a few sessions to see<br>how well Stil serves your creative intent.")
@@ -1070,25 +1233,27 @@ def tab_evals():
     graded = result.get("graded_turns", [])
     summary = result.get("summary", "")
 
-    # Score cards with inline bar
     c1, c2, c3 = st.columns(3)
-    for col, label, dim in [
-        (c1, "Tool accuracy", "tool_accuracy"),
-        (c2, "Goal completion", "goal_completion"),
-        (c3, "Creative intent", "creative_intent"),
+    for col, label, dim, desc in [
+        (c1, "Tool accuracy", "tool_accuracy", "Right tools for the request?"),
+        (c2, "Goal completion", "goal_completion", "Task completed as asked?"),
+        (c3, "Creative intent", "creative_intent", "Output served the creative goal?"),
     ]:
         score = scores.get(dim, 0)
         pct = int((score / 5) * 100)
+        bar_color = "#16A34A" if score >= 4 else ("#EA580C" if score >= 3 else "#DC2626")
         col.markdown(
-            f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:12px;'
-            f'padding:1rem 1.1rem;box-shadow:0 1px 3px rgba(0,0,0,0.04);">'
+            f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:14px;'
+            f'padding:1.1rem 1.25rem;box-shadow:0 1px 3px rgba(17,17,36,0.04),'
+            f'0 4px 14px rgba(107,78,255,0.05);">'
             f'<div style="font-size:10px;font-weight:600;letter-spacing:0.07em;'
-            f'text-transform:uppercase;color:#AAABB8;margin-bottom:0.35rem;">{label}</div>'
-            f'<div style="font-size:1.9rem;font-weight:600;color:#111124;letter-spacing:-0.03em;">'
-            f'{score}<span style="font-size:1rem;color:#CCCCDA;font-weight:400;"> /5</span></div>'
-            f'<div style="background:#F0F0F6;border-radius:4px;height:4px;margin-top:8px;">'
-            f'<div style="width:{pct}%;height:100%;border-radius:4px;'
-            f'background:linear-gradient(90deg,#6B4EFF,#9B81FF);"></div></div>'
+            f'text-transform:uppercase;color:#9898AB;margin-bottom:0.3rem;">{label}</div>'
+            f'<div style="font-size:2rem;font-weight:700;color:#111124;letter-spacing:-0.03em;">'
+            f'{score}<span style="font-size:1rem;color:#C8C8DA;font-weight:400;"> /5</span></div>'
+            f'<div style="font-size:11px;color:#9898AB;margin-top:2px;margin-bottom:8px;">{desc}</div>'
+            f'<div style="background:#F0F0F6;border-radius:4px;height:4px;">'
+            f'<div style="width:{pct}%;height:100%;border-radius:4px;background:{bar_color};'
+            f'transition:width 0.4s;"></div></div>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -1104,7 +1269,6 @@ def tab_evals():
         } for t in graded]).set_index("Turn")
         st.bar_chart(df, height=180, color=["#6B4EFF", "#16A34A", "#EA580C"])
 
-        # Session trend — only meaningful with 2+ sessions
         unique_sessions = list(dict.fromkeys(t["session"] for t in graded))
         if len(unique_sessions) > 1:
             from collections import defaultdict
@@ -1112,7 +1276,7 @@ def tab_evals():
             for t in graded:
                 session_ci[t["session"]].append(t.get("creative_intent", 3))
             trend_df = pd.DataFrame([
-                {"Session": f"S{i + 1}",
+                {"Session": f"S{i+1}",
                  "Creative intent": round(sum(session_ci[s]) / len(session_ci[s]), 1)}
                 for i, s in enumerate(unique_sessions)
             ]).set_index("Session")
@@ -1124,7 +1288,7 @@ def tab_evals():
         st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
         st.markdown(_section_label("Product health summary"), unsafe_allow_html=True)
         st.markdown(
-            f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:10px;'
+            f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:12px;'
             f'padding:1rem 1.1rem;font-size:14px;color:#3A3A5C;line-height:1.8;">'
             f'{summary}</div>',
             unsafe_allow_html=True
@@ -1141,7 +1305,7 @@ def tab_evals():
 
 def tab_assets():
     st.markdown(
-        '<p style="font-size:13px;color:#6B6B88;margin:-0.5rem 0 1.25rem;">'
+        '<p style="font-size:13px;color:#9898AB;margin:-0.5rem 0 1.25rem;">'
         'Describe what you need. Stil scores your library by keyword match and AI tags.'
         '</p>',
         unsafe_allow_html=True
@@ -1161,21 +1325,19 @@ def tab_assets():
         return
 
     st.markdown(
-        f'<div style="font-size:12px;color:#AAABB8;margin-bottom:1rem;">'
+        f'<div style="font-size:12px;color:#9898AB;margin-bottom:1rem;">'
         f'{len(asset_files)} asset{"s" if len(asset_files) != 1 else ""} in library</div>',
         unsafe_allow_html=True
     )
 
     query = st.text_input(
-        "search",
-        placeholder="high contrast background for a social post…",
+        "search", placeholder="high contrast background for a social post…",
         label_visibility="collapsed"
     )
 
     if query:
         with st.spinner("Searching…"):
             result = find_asset(query)
-
         if result.get("results"):
             st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
             for r in result["results"]:
@@ -1186,22 +1348,23 @@ def tab_assets():
                         st.image(filepath, use_container_width=True)
                     else:
                         st.markdown(
-                            '<div style="background:#F5F5FA;border:1px solid #E4E4F0;'
-                            'border-radius:8px;height:80px;display:flex;align-items:center;'
-                            'justify-content:center;color:#CCCCDA;font-size:20px;">◻</div>',
+                            '<div style="background:#F7F6FB;border:1px solid #EAEAF5;'
+                            'border-radius:10px;height:80px;display:flex;align-items:center;'
+                            'justify-content:center;color:#C8C8DA;font-size:20px;">◻</div>',
                             unsafe_allow_html=True
                         )
                 with c2:
                     tags_html = " ".join(_tag_pill(t) for t in (r.get("tags") or []))
                     st.markdown(
-                        f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:10px;'
-                        f'padding:0.85rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,0.04);">'
+                        f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:12px;'
+                        f'padding:0.85rem 1rem;box-shadow:0 1px 3px rgba(17,17,36,0.04),"'
+                        f'0 4px 12px rgba(107,78,255,0.04);">'
                         f'<div style="font-size:10px;font-weight:600;letter-spacing:0.07em;'
                         f'text-transform:uppercase;color:#6B4EFF;margin-bottom:0.25rem;">#{r["rank"]}</div>'
                         f'<div style="font-size:14px;font-weight:500;color:#111124;margin-bottom:0.35rem;">'
                         f'{r["filename"]}</div>'
                         f'<div style="margin-bottom:0.4rem;">{tags_html}</div>'
-                        f'<div style="font-size:12px;color:#AAABB8;line-height:1.5;">{r["rationale"]}</div>'
+                        f'<div style="font-size:12px;color:#9898AB;line-height:1.55;">{r["rationale"]}</div>'
                         f'</div>',
                         unsafe_allow_html=True
                     )
@@ -1216,12 +1379,12 @@ def tab_assets():
                     st.image(filepath, use_container_width=True)
                 else:
                     st.markdown(
-                        '<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:8px;'
-                        'height:100px;"></div>',
+                        '<div style="background:#FFFFFF;border:1px solid #EAEAF5;'
+                        'border-radius:10px;height:100px;"></div>',
                         unsafe_allow_html=True
                     )
                 st.markdown(
-                    f'<div style="font-size:10px;color:#AAABB8;text-align:center;margin-top:4px;'
+                    f'<div style="font-size:10px;color:#9898AB;text-align:center;margin-top:4px;'
                     f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{label}</div>',
                     unsafe_allow_html=True
                 )
@@ -1231,7 +1394,7 @@ def tab_assets():
 
 def tab_feed():
     st.markdown(
-        '<p style="font-size:13px;color:#6B6B88;margin:-0.5rem 0 1.25rem;">'
+        '<p style="font-size:13px;color:#9898AB;margin:-0.5rem 0 1.25rem;">'
         'Analyze feed consistency and transfer visual style from any reference photo.'
         '</p>',
         unsafe_allow_html=True
@@ -1242,8 +1405,8 @@ def tab_feed():
     # ── Cohesion Score ──────────────────────────────────────────────────────
     with feed_sub1:
         st.markdown(
-            '<div style="font-size:12px;color:#6B6B88;margin-bottom:0.9rem;">'
-            'Upload 3–10 photos from your feed. Stil scores consistency across '
+            '<div style="font-size:12px;color:#9898AB;margin-bottom:1rem;line-height:1.6;">'
+            'Upload 3–10 photos from your feed. Stil measures consistency across '
             'color temperature, brightness, contrast, and saturation.</div>',
             unsafe_allow_html=True
         )
@@ -1259,37 +1422,35 @@ def tab_feed():
         if feed_files:
             n = len(feed_files)
             st.markdown(
-                f'<div style="font-size:11px;color:#AAABB8;margin-bottom:0.75rem;">'
-                f'{n} photo{"s" if n != 1 else ""} uploaded</div>',
+                f'<div style="font-size:11px;color:#9898AB;margin:0.4rem 0 0.75rem;">'
+                f'{n} photo{"s" if n != 1 else ""} ready for analysis</div>',
                 unsafe_allow_html=True
             )
-            # Thumbnail grid
-            thumb_cols = st.columns(min(n, 5))
-            for i, f in enumerate(feed_files[:5]):
+            cols_n = min(n, 6)
+            thumb_cols = st.columns(cols_n)
+            for i, f in enumerate(feed_files[:6]):
                 with thumb_cols[i]:
                     st.image(f, use_container_width=True)
                     st.markdown(
-                        f'<div style="font-size:9px;color:#AAABB8;text-align:center;'
-                        f'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
-                        f'{f.name[:20]}</div>',
+                        f'<div style="font-size:9px;color:#9898AB;text-align:center;'
+                        f'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;">'
+                        f'{f.name[:18]}</div>',
                         unsafe_allow_html=True
                     )
-            if n > 5:
+            if n > 6:
                 st.markdown(
-                    f'<div style="font-size:11px;color:#AAABB8;">+{n - 5} more</div>',
+                    f'<div style="font-size:11px;color:#9898AB;margin-top:4px;">+{n - 6} more</div>',
                     unsafe_allow_html=True
                 )
 
         if feed_files and st.button("Analyze feed", type="primary", key="analyze_feed"):
             with st.spinner("Measuring cohesion…"):
-                image_bytes_list = []
-                filenames = []
+                image_bytes_list, filenames = [], []
                 for f in feed_files:
                     f.seek(0)
                     image_bytes_list.append(f.read())
                     filenames.append(f.name)
-                result = analyze_feed(image_bytes_list, filenames)
-            st.session_state.cohesion_result = result
+                st.session_state.cohesion_result = analyze_feed(image_bytes_list, filenames)
 
         result = st.session_state.get("cohesion_result")
         if result and not result.get("error"):
@@ -1297,79 +1458,79 @@ def tab_feed():
 
             score = result["score"]
             if score >= 80:
-                score_label, score_color = "Highly cohesive", "#16A34A"
+                label, color, bg = "Highly cohesive", "#16A34A", "#F0FFF4"
             elif score >= 60:
-                score_label, score_color = "Mostly consistent", "#EA580C"
+                label, color, bg = "Mostly consistent", "#EA580C", "#FFF9F0"
             elif score >= 40:
-                score_label, score_color = "Mixed feed", "#DC2626"
+                label, color, bg = "Mixed feed", "#DC2626", "#FFF5F5"
             else:
-                score_label, score_color = "Inconsistent", "#DC2626"
+                label, color, bg = "Inconsistent", "#DC2626", "#FFF5F5"
 
             # Score card
             st.markdown(
-                f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:14px;'
-                f'padding:1.25rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;'
-                f'justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.04);">'
+                f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:16px;'
+                f'padding:1.5rem 1.75rem;margin-bottom:1.1rem;display:flex;align-items:center;'
+                f'justify-content:space-between;box-shadow:0 2px 8px rgba(17,17,36,0.06),'
+                f'0 8px 24px rgba(107,78,255,0.07);">'
                 f'<div>'
                 f'<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;'
-                f'text-transform:uppercase;color:#AAABB8;margin-bottom:0.3rem;">Cohesion score</div>'
-                f'<div style="font-size:3rem;font-weight:700;color:#111124;letter-spacing:-0.04em;'
+                f'text-transform:uppercase;color:#9898AB;margin-bottom:0.35rem;">Cohesion score</div>'
+                f'<div style="font-size:3.5rem;font-weight:800;color:#111124;letter-spacing:-0.05em;'
                 f'line-height:1;">{score}'
-                f'<span style="font-size:1.2rem;color:#CCCCDA;font-weight:400;"> /100</span></div>'
+                f'<span style="font-size:1.25rem;color:#C8C8DA;font-weight:400;"> /100</span></div>'
                 f'</div>'
-                f'<div style="text-align:right;">'
-                f'<div style="font-size:15px;font-weight:600;color:{score_color};">{score_label}</div>'
-                f'<div style="font-size:12px;color:#AAABB8;margin-top:0.2rem;">'
+                f'<div style="background:{bg};border:1px solid rgba(0,0,0,0.06);border-radius:12px;'
+                f'padding:0.5rem 1rem;text-align:right;">'
+                f'<div style="font-size:15px;font-weight:700;color:{color};">{label}</div>'
+                f'<div style="font-size:11px;color:#9898AB;margin-top:3px;">'
                 f'{len(result.get("per_image_metrics", []))} photos analyzed</div>'
                 f'</div>'
                 f'</div>',
                 unsafe_allow_html=True
             )
 
-            # Dimension bars
+            # Dimension score bars
             if result.get("dimension_scores"):
                 st.markdown(_section_label("Consistency by dimension"), unsafe_allow_html=True)
                 dim_cols = st.columns(4)
                 for i, (dim, ds) in enumerate(result["dimension_scores"].items()):
                     bar_color = "#16A34A" if ds >= 80 else ("#EA580C" if ds >= 60 else "#DC2626")
                     dim_cols[i].markdown(
-                        f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:10px;'
-                        f'padding:0.75rem 0.85rem;text-align:center;">'
+                        f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:12px;'
+                        f'padding:0.85rem 0.95rem;text-align:center;'
+                        f'box-shadow:0 1px 3px rgba(17,17,36,0.04);">'
                         f'<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
-                        f'text-transform:uppercase;color:#AAABB8;margin-bottom:0.4rem;">{dim}</div>'
-                        f'<div style="font-size:1.5rem;font-weight:600;color:#111124;">{ds}</div>'
-                        f'<div style="background:#F0F0F6;border-radius:4px;height:4px;margin-top:6px;">'
+                        f'text-transform:uppercase;color:#9898AB;margin-bottom:0.5rem;">{dim}</div>'
+                        f'<div style="font-size:1.6rem;font-weight:700;color:#111124;'
+                        f'letter-spacing:-0.03em;">{ds}</div>'
+                        f'<div style="background:#F0F0F6;border-radius:4px;height:4px;margin-top:7px;">'
                         f'<div style="width:{ds}%;height:100%;border-radius:4px;background:{bar_color};"></div>'
                         f'</div></div>',
                         unsafe_allow_html=True
                     )
 
-            # Issues
             issues = result.get("issues", [])
             if issues:
                 st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
                 st.markdown(_section_label("What's breaking consistency"), unsafe_allow_html=True)
                 for issue in issues:
                     st.markdown(
-                        f'<div style="background:#FFF9F0;border:1px solid #FED7AA;border-radius:8px;'
-                        f'padding:0.5rem 0.9rem;margin-bottom:0.4rem;font-size:12px;color:#92400E;">'
+                        f'<div style="background:#FFF9F0;border:1px solid #FED7AA;border-radius:10px;'
+                        f'padding:0.55rem 0.95rem;margin-bottom:0.4rem;font-size:12px;color:#92400E;">'
                         f'⚠ {issue}</div>',
                         unsafe_allow_html=True
                     )
 
             if result.get("suggested_fix"):
-                st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
                 st.markdown(
-                    f'<div style="background:#F0FFF4;border:1px solid #BBF7D0;border-radius:8px;'
-                    f'padding:0.6rem 1rem;font-size:12px;color:#166534;">'
+                    f'<div style="background:#F0FFF4;border:1px solid #BBF7D0;border-radius:10px;'
+                    f'padding:0.6rem 1rem;margin-top:0.5rem;font-size:12px;color:#166534;">'
                     f'→ <strong>Suggested fix:</strong> {result["suggested_fix"]}</div>',
                     unsafe_allow_html=True
                 )
 
-            # Per-image breakdown
             if result.get("per_image_metrics"):
                 with st.expander("Per-photo breakdown"):
-                    import pandas as pd
                     df = pd.DataFrame(result["per_image_metrics"])
                     df.columns = [c.replace("_", " ").capitalize() for c in df.columns]
                     st.dataframe(df, use_container_width=True, hide_index=True)
@@ -1381,35 +1542,38 @@ def tab_feed():
     # ── Style Transfer ──────────────────────────────────────────────────────
     with feed_sub2:
         st.markdown(
-            '<div style="font-size:12px;color:#6B6B88;margin-bottom:1rem;">'
-            'Upload a reference photo (mood board, competitor shot, or inspiration) '
-            'and Stil extracts its visual style — then applies it to your photo.</div>',
+            '<div style="font-size:12px;color:#9898AB;margin-bottom:1rem;line-height:1.6;">'
+            'Upload a reference photo — competitor shot, mood board, or editorial. '
+            'Stil reads its visual style and applies it to your photo.</div>',
             unsafe_allow_html=True
         )
 
-        ref_col, target_col = st.columns(2)
+        ref_col, target_col = st.columns(2, gap="large")
 
         with ref_col:
-            st.markdown(_section_label("Reference photo"), unsafe_allow_html=True)
+            st.markdown(_section_label("Reference"), unsafe_allow_html=True)
             ref_file = st.file_uploader(
-                "Reference photo",
+                "Reference",
                 type=["jpg", "jpeg", "png", "webp"],
                 key="ref_upload",
                 label_visibility="collapsed",
             )
             if ref_file:
                 st.image(ref_file, use_container_width=True)
-                with st.spinner("Reading style…"):
-                    ref_file.seek(0)
-                    ref_bytes = ref_file.read()
-                    ref_style = extract_reference_style(ref_bytes)
+                ref_file.seek(0)
+                ref_bytes_preview = ref_file.read()
+                ref_style = extract_reference_style(ref_bytes_preview)
                 st.markdown(
-                    f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:8px;'
-                    f'padding:0.5rem 0.75rem;margin-top:0.5rem;font-size:11px;">'
-                    f'<div style="font-weight:600;color:#111124;margin-bottom:3px;">Style detected</div>'
-                    f'<div style="color:#6B4EFF;font-weight:500;">{ref_style["filter_type"].upper()}</div>'
-                    f'<div style="color:#6B6B88;">{ref_style["description"]}</div>'
-                    f'<div style="color:#AAABB8;margin-top:3px;font-size:10px;">'
+                    f'<div style="background:#FFFFFF;border:1px solid #EAEAF5;border-radius:10px;'
+                    f'padding:0.65rem 0.85rem;margin-top:0.55rem;'
+                    f'box-shadow:0 1px 3px rgba(17,17,36,0.04);">'
+                    f'<div style="font-size:9px;font-weight:600;text-transform:uppercase;'
+                    f'letter-spacing:0.07em;color:#9898AB;margin-bottom:5px;">Style detected</div>'
+                    f'<div style="font-size:13px;font-weight:700;color:#6B4EFF;margin-bottom:3px;">'
+                    f'{ref_style["filter_type"].upper()}</div>'
+                    f'<div style="font-size:11px;color:#5F5F7A;margin-bottom:5px;">'
+                    f'{ref_style["description"]}</div>'
+                    f'<div style="font-size:10px;color:#9898AB;">'
                     f'Brightness {ref_style["brightness_delta"]:+d} · '
                     f'Contrast {ref_style["contrast_delta"]:+d} · {ref_style["tone"]} tone</div>'
                     f'</div>',
@@ -1436,11 +1600,11 @@ def tab_feed():
                     ref_b = ref_file.read()
                     target_b = target_file.read()
                     result_bytes = apply_style_transfer(target_b, ref_b)
-                    ref_style_info = extract_reference_style(ref_b)
+                    si = extract_reference_style(ref_b)
                 st.session_state.transfer_result = {
                     "before_b64": base64.b64encode(target_b).decode(),
                     "after_b64": base64.b64encode(result_bytes).decode(),
-                    "style_info": ref_style_info,
+                    "style_info": si,
                 }
 
         xfer = st.session_state.get("transfer_result")
@@ -1451,28 +1615,26 @@ def tab_feed():
             with bc:
                 st.markdown(
                     '<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
-                    'text-transform:uppercase;color:#AAABB8;margin-bottom:4px;">Before</div>',
+                    'text-transform:uppercase;color:#9898AB;margin-bottom:5px;">Before</div>',
                     unsafe_allow_html=True
                 )
                 st.image(base64.b64decode(xfer["before_b64"]), use_container_width=True)
             with ac:
                 st.markdown(
                     '<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
-                    'text-transform:uppercase;color:#AAABB8;margin-bottom:4px;">After</div>',
+                    'text-transform:uppercase;color:#6B4EFF;margin-bottom:5px;">After</div>',
                     unsafe_allow_html=True
                 )
                 st.image(base64.b64decode(xfer["after_b64"]), use_container_width=True)
-
             si = xfer.get("style_info", {})
             st.markdown(
-                f'<div style="background:#F0FFF4;border:1px solid #BBF7D0;border-radius:8px;'
-                f'padding:0.5rem 1rem;margin-top:0.5rem;font-size:12px;color:#166534;">'
-                f'✓ Applied: <strong>{si.get("filter_type", "").upper()} filter</strong> · '
-                f'brightness {si.get("brightness_delta", 0):+d} · '
-                f'contrast {si.get("contrast_delta", 0):+d}</div>',
+                f'<div style="background:#F0FFF4;border:1px solid #BBF7D0;border-radius:10px;'
+                f'padding:0.55rem 1rem;margin-top:0.55rem;font-size:12px;color:#166534;">'
+                f'✓ Applied: <strong>{si.get("filter_type","").upper()} filter</strong> · '
+                f'brightness {si.get("brightness_delta",0):+d} · '
+                f'contrast {si.get("contrast_delta",0):+d}</div>',
                 unsafe_allow_html=True
             )
-
         elif not (ref_file and target_file):
             _empty_state("◑", "Upload both photos to begin",
                          "Reference sets the style. Your photo receives it.")
@@ -1483,7 +1645,7 @@ def tab_feed():
 def _section_label(text: str) -> str:
     return (
         f'<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;'
-        f'text-transform:uppercase;color:#AAABB8;margin-bottom:0.6rem;">{text}</div>'
+        f'text-transform:uppercase;color:#9898AB;margin-bottom:0.55rem;">{text}</div>'
     )
 
 
@@ -1497,10 +1659,10 @@ def _tag_pill(text: str) -> str:
 
 def _empty_state(icon: str, title: str, body: str):
     st.markdown(
-        f'<div style="text-align:center;padding:3rem 1rem;color:#AAABB8;">'
-        f'<div style="font-size:2rem;margin-bottom:0.75rem;">{icon}</div>'
-        f'<div style="font-size:15px;font-weight:500;color:#6B6B88;margin-bottom:0.4rem;">{title}</div>'
-        f'<div style="font-size:13px;line-height:1.65;">{body}</div>'
+        f'<div style="text-align:center;padding:3.5rem 1rem;">'
+        f'<div style="font-size:2.25rem;color:#D8D4F7;margin-bottom:0.7rem;">{icon}</div>'
+        f'<div style="font-size:15px;font-weight:600;color:#5F5F7A;margin-bottom:0.4rem;">{title}</div>'
+        f'<div style="font-size:13px;color:#9898AB;line-height:1.65;">{body}</div>'
         f'</div>',
         unsafe_allow_html=True
     )
@@ -1512,18 +1674,19 @@ def main():
     render_sidebar()
 
     st.markdown(
-        '<div style="margin-bottom:0.2rem;">'
-        '<span style="font-size:24px;font-weight:600;letter-spacing:-0.04em;color:#111124;">Stil</span>'
-        '<span style="font-size:24px;font-weight:600;color:#6B4EFF;margin-left:4px;">✦</span>'
+        '<div style="margin-bottom:0.15rem;display:flex;align-items:baseline;gap:6px;">'
+        '<span style="font-size:26px;font-weight:700;letter-spacing:-0.04em;color:#111124;">Stil</span>'
+        '<span style="font-size:26px;font-weight:700;color:#6B4EFF;">✦</span>'
         '</div>'
-        '<div style="font-size:11px;color:#AAABB8;letter-spacing:0.05em;'
-        'text-transform:uppercase;font-weight:500;margin-bottom:1.5rem;">'
+        '<div style="font-size:11px;color:#9898AB;letter-spacing:0.05em;'
+        'text-transform:uppercase;font-weight:500;margin-bottom:1.4rem;">'
         'Creative editing with memory'
         '</div>',
         unsafe_allow_html=True
     )
 
-    for key, default in [("cohesion_result", None), ("transfer_result", None)]:
+    for key, default in [("cohesion_result", None), ("transfer_result", None),
+                          ("eval_result", None)]:
         if key not in st.session_state:
             st.session_state[key] = default
 
