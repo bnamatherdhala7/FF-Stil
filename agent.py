@@ -434,6 +434,53 @@ Session:
     return style
 
 
+def translate_brief_to_edits(brief: str) -> dict:
+    """One Haiku call: creative brief text → structured edit plan dict."""
+    prompt = f"""You are a creative director. Read this creative brief and output a structured edit plan.
+Return ONLY valid JSON, no other text:
+{{
+  "filter": "warm|cool|vintage|dramatic|soft|vivid|bw",
+  "brightness": integer from -60 to 60,
+  "contrast": integer from -60 to 60,
+  "crop": "square|portrait|landscape|story|none",
+  "platform": "instagram|tiktok|twitter|linkedin|web|none",
+  "rationale": "one sentence explaining the edit choices"
+}}
+
+Brief: {brief}"""
+
+    response = client.messages.create(
+        model=MODEL,
+        max_tokens=150,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    try:
+        raw = response.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        return json.loads(raw.strip())
+    except Exception:
+        return {}
+
+
+def format_edit_plan(plan: dict) -> str:
+    """Convert an edit plan dict into a natural-language edit command string."""
+    parts = []
+    if plan.get("filter") and plan["filter"] != "none":
+        parts.append(f"Apply {plan['filter']} filter")
+    if plan.get("brightness") and abs(plan["brightness"]) > 3:
+        parts.append(f"brightness {plan['brightness']:+d}")
+    if plan.get("contrast") and abs(plan["contrast"]) > 3:
+        parts.append(f"contrast {plan['contrast']:+d}")
+    if plan.get("crop") and plan["crop"] != "none":
+        parts.append(f"crop to {plan['crop']}")
+    if plan.get("platform") and plan["platform"] != "none":
+        parts.append(f"export for {plan['platform']}")
+    return ", ".join(parts) if parts else "Apply standard edits"
+
+
 def write_session_log(messages: list, tool_trace: list):
     """Write session to logs/session_TIMESTAMP.jsonl"""
     os.makedirs(LOGS_DIR, exist_ok=True)

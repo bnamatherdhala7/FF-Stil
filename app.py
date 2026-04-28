@@ -11,9 +11,11 @@ import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
 from agent import (run_agent_streaming, load_style, save_style, extract_and_save_style,
-                   write_session_log, update_choices_log, extract_color_palette, extract_exif)
+                   write_session_log, update_choices_log, extract_color_palette, extract_exif,
+                   translate_brief_to_edits, format_edit_plan)
 from asset_library import list_assets, find_asset
 from creative_tools import preview_edits
+from feed_analyzer import analyze_feed, extract_reference_style, apply_style_transfer
 
 load_dotenv()
 
@@ -516,6 +518,66 @@ def tab_agent():
 
     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
+    # ── Brief-to-Edit Translator ─────────────────────────────────────────────
+    if "brief_prompt" not in st.session_state:
+        st.session_state.brief_prompt = ""
+    if "brief_plan" not in st.session_state:
+        st.session_state.brief_plan = None
+
+    with st.expander("Generate from brief", expanded=False):
+        st.markdown(
+            '<div style="font-size:12px;color:#6B6B88;margin-bottom:0.6rem;">'
+            'Describe the creative direction — Stil translates it into an edit command.</div>',
+            unsafe_allow_html=True
+        )
+        brief_text = st.text_area(
+            "brief", height=68, label_visibility="collapsed",
+            placeholder="Moody editorial for a luxury brand — cool tones, high contrast, portrait crop…",
+            key="brief_input"
+        )
+        b_col1, b_col2 = st.columns([2, 6])
+        with b_col1:
+            gen_clicked = st.button("Generate plan", key="gen_brief")
+        if gen_clicked and brief_text.strip():
+            with st.spinner("Translating brief…"):
+                plan = translate_brief_to_edits(brief_text.strip())
+            st.session_state.brief_plan = plan
+
+        plan = st.session_state.brief_plan
+        if plan:
+            rationale = plan.get("rationale", "")
+            cmd = format_edit_plan(plan)
+            if rationale:
+                st.markdown(
+                    f'<div style="font-size:12px;color:#6B4EFF;font-style:italic;'
+                    f'margin-bottom:0.5rem;">"{rationale}"</div>',
+                    unsafe_allow_html=True
+                )
+            pills_html = "".join([
+                f'<span style="display:inline-block;background:rgba(107,78,255,0.07);'
+                f'color:#6B4EFF;border:1px solid rgba(107,78,255,0.18);border-radius:20px;'
+                f'font-size:11px;font-weight:500;padding:3px 10px;margin:2px 3px 2px 0;">'
+                f'{k}: {v}</span>'
+                for k, v in {
+                    "Filter": plan.get("filter", "—"),
+                    "Brightness": f"{plan.get('brightness', 0):+d}" if plan.get("brightness") else "—",
+                    "Contrast": f"{plan.get('contrast', 0):+d}" if plan.get("contrast") else "—",
+                    "Crop": plan.get("crop", "—"),
+                    "Platform": plan.get("platform", "—"),
+                }.items() if v and v != "none" and v != "—"
+            ])
+            st.markdown(
+                f'<div style="margin-bottom:0.5rem;">{pills_html}</div>',
+                unsafe_allow_html=True
+            )
+            with b_col2:
+                if st.button("Send to editor →", key="send_brief"):
+                    st.session_state.brief_prompt = cmd
+                    st.session_state.brief_plan = None
+                    st.rerun()
+
+    st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
+
     # ── Chat history ─────────────────────────────────────────────────────────
     for msg in st.session_state.messages:
         if msg["role"] == "user":
@@ -586,6 +648,11 @@ def tab_agent():
     if selected_sample and not user_input:
         user_input = selected_sample
         st.session_state.pill_cycle += 1
+
+    # Use brief-generated prompt if "Send to editor" was clicked
+    if not user_input and st.session_state.get("brief_prompt"):
+        user_input = st.session_state.brief_prompt
+        st.session_state.brief_prompt = ""
 
     if user_input:
         # Capture image before session state is mutated
@@ -885,6 +952,70 @@ def tab_memory():
     with st.expander("Raw style_profile.json"):
         st.json(memory)
 
+    # ── Brand Switcher ───────────────────────────────────────────────────────
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown(_section_label("Saved brands"), unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font-size:12px;color:#6B6B88;margin-bottom:0.75rem;">'
+        'Save named style profiles — switch between clients or campaigns instantly.</div>',
+        unsafe_allow_html=True
+    )
+
+    brands = memory.get("brands", {})
+
+    if brands:
+        for brand_name, brand_data in list(brands.items()):
+            b1, b2, b3 = st.columns([4, 1, 1])
+            with b1:
+                b_sig = brand_data.get("style_signature", {})
+                b_tone = b_sig.get("tone", "—")
+                b_targets = ", ".join(b_sig.get("export_targets", [])) or "—"
+                st.markdown(
+                    f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:8px;'
+                    f'padding:0.5rem 0.85rem;font-size:12px;">'
+                    f'<span style="font-weight:600;color:#111124;">{brand_name}</span>'
+                    f'<span style="color:#AAABB8;margin-left:8px;">{b_tone} · {b_targets}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+            with b2:
+                if st.button("Load", key=f"load_brand_{brand_name}"):
+                    memory["style_signature"] = brand_data.get("style_signature", {})
+                    if brand_data.get("choices_log"):
+                        memory["choices_log"] = brand_data["choices_log"]
+                    save_style(memory)
+                    st.success(f"Loaded {brand_name}")
+                    st.rerun()
+            with b3:
+                if st.button("Delete", key=f"del_brand_{brand_name}"):
+                    del memory["brands"][brand_name]
+                    save_style(memory)
+                    st.rerun()
+    else:
+        st.markdown(
+            '<div style="font-size:12px;color:#AAABB8;margin-bottom:0.5rem;">'
+            'No saved brands yet.</div>',
+            unsafe_allow_html=True
+        )
+
+    with st.form("save_brand_form"):
+        br1, br2 = st.columns([4, 1])
+        with br1:
+            brand_input = st.text_input("Brand name", placeholder="Summer campaign, Brand B…",
+                                        label_visibility="collapsed")
+        with br2:
+            if st.form_submit_button("Save brand"):
+                if brand_input.strip():
+                    if "brands" not in memory:
+                        memory["brands"] = {}
+                    memory["brands"][brand_input.strip()] = {
+                        "style_signature": memory.get("style_signature", {}),
+                        "choices_log": memory.get("choices_log", []),
+                    }
+                    save_style(memory)
+                    st.success(f"Saved as \"{brand_input.strip()}\"")
+                    st.rerun()
+
     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
     if st.button("Clear style memory", key="clear_memory"):
         if os.path.exists("style_profile.json"):
@@ -1096,6 +1227,257 @@ def tab_assets():
                 )
 
 
+# ─── Feed Tab ─────────────────────────────────────────────────────────────────
+
+def tab_feed():
+    st.markdown(
+        '<p style="font-size:13px;color:#6B6B88;margin:-0.5rem 0 1.25rem;">'
+        'Analyze feed consistency and transfer visual style from any reference photo.'
+        '</p>',
+        unsafe_allow_html=True
+    )
+
+    feed_sub1, feed_sub2 = st.tabs(["Cohesion Score", "Style Transfer"])
+
+    # ── Cohesion Score ──────────────────────────────────────────────────────
+    with feed_sub1:
+        st.markdown(
+            '<div style="font-size:12px;color:#6B6B88;margin-bottom:0.9rem;">'
+            'Upload 3–10 photos from your feed. Stil scores consistency across '
+            'color temperature, brightness, contrast, and saturation.</div>',
+            unsafe_allow_html=True
+        )
+
+        feed_files = st.file_uploader(
+            "Upload feed photos",
+            type=["jpg", "jpeg", "png", "webp"],
+            accept_multiple_files=True,
+            key="feed_upload",
+            label_visibility="collapsed",
+        )
+
+        if feed_files:
+            n = len(feed_files)
+            st.markdown(
+                f'<div style="font-size:11px;color:#AAABB8;margin-bottom:0.75rem;">'
+                f'{n} photo{"s" if n != 1 else ""} uploaded</div>',
+                unsafe_allow_html=True
+            )
+            # Thumbnail grid
+            thumb_cols = st.columns(min(n, 5))
+            for i, f in enumerate(feed_files[:5]):
+                with thumb_cols[i]:
+                    st.image(f, use_container_width=True)
+                    st.markdown(
+                        f'<div style="font-size:9px;color:#AAABB8;text-align:center;'
+                        f'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+                        f'{f.name[:20]}</div>',
+                        unsafe_allow_html=True
+                    )
+            if n > 5:
+                st.markdown(
+                    f'<div style="font-size:11px;color:#AAABB8;">+{n - 5} more</div>',
+                    unsafe_allow_html=True
+                )
+
+        if feed_files and st.button("Analyze feed", type="primary", key="analyze_feed"):
+            with st.spinner("Measuring cohesion…"):
+                image_bytes_list = []
+                filenames = []
+                for f in feed_files:
+                    f.seek(0)
+                    image_bytes_list.append(f.read())
+                    filenames.append(f.name)
+                result = analyze_feed(image_bytes_list, filenames)
+            st.session_state.cohesion_result = result
+
+        result = st.session_state.get("cohesion_result")
+        if result and not result.get("error"):
+            st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
+
+            score = result["score"]
+            if score >= 80:
+                score_label, score_color = "Highly cohesive", "#16A34A"
+            elif score >= 60:
+                score_label, score_color = "Mostly consistent", "#EA580C"
+            elif score >= 40:
+                score_label, score_color = "Mixed feed", "#DC2626"
+            else:
+                score_label, score_color = "Inconsistent", "#DC2626"
+
+            # Score card
+            st.markdown(
+                f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:14px;'
+                f'padding:1.25rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;'
+                f'justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.04);">'
+                f'<div>'
+                f'<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;'
+                f'text-transform:uppercase;color:#AAABB8;margin-bottom:0.3rem;">Cohesion score</div>'
+                f'<div style="font-size:3rem;font-weight:700;color:#111124;letter-spacing:-0.04em;'
+                f'line-height:1;">{score}'
+                f'<span style="font-size:1.2rem;color:#CCCCDA;font-weight:400;"> /100</span></div>'
+                f'</div>'
+                f'<div style="text-align:right;">'
+                f'<div style="font-size:15px;font-weight:600;color:{score_color};">{score_label}</div>'
+                f'<div style="font-size:12px;color:#AAABB8;margin-top:0.2rem;">'
+                f'{len(result.get("per_image_metrics", []))} photos analyzed</div>'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
+            # Dimension bars
+            if result.get("dimension_scores"):
+                st.markdown(_section_label("Consistency by dimension"), unsafe_allow_html=True)
+                dim_cols = st.columns(4)
+                for i, (dim, ds) in enumerate(result["dimension_scores"].items()):
+                    bar_color = "#16A34A" if ds >= 80 else ("#EA580C" if ds >= 60 else "#DC2626")
+                    dim_cols[i].markdown(
+                        f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:10px;'
+                        f'padding:0.75rem 0.85rem;text-align:center;">'
+                        f'<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
+                        f'text-transform:uppercase;color:#AAABB8;margin-bottom:0.4rem;">{dim}</div>'
+                        f'<div style="font-size:1.5rem;font-weight:600;color:#111124;">{ds}</div>'
+                        f'<div style="background:#F0F0F6;border-radius:4px;height:4px;margin-top:6px;">'
+                        f'<div style="width:{ds}%;height:100%;border-radius:4px;background:{bar_color};"></div>'
+                        f'</div></div>',
+                        unsafe_allow_html=True
+                    )
+
+            # Issues
+            issues = result.get("issues", [])
+            if issues:
+                st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
+                st.markdown(_section_label("What's breaking consistency"), unsafe_allow_html=True)
+                for issue in issues:
+                    st.markdown(
+                        f'<div style="background:#FFF9F0;border:1px solid #FED7AA;border-radius:8px;'
+                        f'padding:0.5rem 0.9rem;margin-bottom:0.4rem;font-size:12px;color:#92400E;">'
+                        f'⚠ {issue}</div>',
+                        unsafe_allow_html=True
+                    )
+
+            if result.get("suggested_fix"):
+                st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+                st.markdown(
+                    f'<div style="background:#F0FFF4;border:1px solid #BBF7D0;border-radius:8px;'
+                    f'padding:0.6rem 1rem;font-size:12px;color:#166534;">'
+                    f'→ <strong>Suggested fix:</strong> {result["suggested_fix"]}</div>',
+                    unsafe_allow_html=True
+                )
+
+            # Per-image breakdown
+            if result.get("per_image_metrics"):
+                with st.expander("Per-photo breakdown"):
+                    import pandas as pd
+                    df = pd.DataFrame(result["per_image_metrics"])
+                    df.columns = [c.replace("_", " ").capitalize() for c in df.columns]
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+
+        elif not feed_files:
+            _empty_state("◎", "No photos uploaded",
+                         "Upload 3 or more photos from your feed to measure consistency.")
+
+    # ── Style Transfer ──────────────────────────────────────────────────────
+    with feed_sub2:
+        st.markdown(
+            '<div style="font-size:12px;color:#6B6B88;margin-bottom:1rem;">'
+            'Upload a reference photo (mood board, competitor shot, or inspiration) '
+            'and Stil extracts its visual style — then applies it to your photo.</div>',
+            unsafe_allow_html=True
+        )
+
+        ref_col, target_col = st.columns(2)
+
+        with ref_col:
+            st.markdown(_section_label("Reference photo"), unsafe_allow_html=True)
+            ref_file = st.file_uploader(
+                "Reference photo",
+                type=["jpg", "jpeg", "png", "webp"],
+                key="ref_upload",
+                label_visibility="collapsed",
+            )
+            if ref_file:
+                st.image(ref_file, use_container_width=True)
+                with st.spinner("Reading style…"):
+                    ref_file.seek(0)
+                    ref_bytes = ref_file.read()
+                    ref_style = extract_reference_style(ref_bytes)
+                st.markdown(
+                    f'<div style="background:#FFFFFF;border:1px solid #E4E4F0;border-radius:8px;'
+                    f'padding:0.5rem 0.75rem;margin-top:0.5rem;font-size:11px;">'
+                    f'<div style="font-weight:600;color:#111124;margin-bottom:3px;">Style detected</div>'
+                    f'<div style="color:#6B4EFF;font-weight:500;">{ref_style["filter_type"].upper()}</div>'
+                    f'<div style="color:#6B6B88;">{ref_style["description"]}</div>'
+                    f'<div style="color:#AAABB8;margin-top:3px;font-size:10px;">'
+                    f'Brightness {ref_style["brightness_delta"]:+d} · '
+                    f'Contrast {ref_style["contrast_delta"]:+d} · {ref_style["tone"]} tone</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+        with target_col:
+            st.markdown(_section_label("Your photo"), unsafe_allow_html=True)
+            target_file = st.file_uploader(
+                "Your photo",
+                type=["jpg", "jpeg", "png", "webp"],
+                key="target_upload",
+                label_visibility="collapsed",
+            )
+            if target_file:
+                st.image(target_file, use_container_width=True)
+
+        if ref_file and target_file:
+            st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+            if st.button("Transfer style →", type="primary", key="transfer_style"):
+                with st.spinner("Applying style…"):
+                    ref_file.seek(0)
+                    target_file.seek(0)
+                    ref_b = ref_file.read()
+                    target_b = target_file.read()
+                    result_bytes = apply_style_transfer(target_b, ref_b)
+                    ref_style_info = extract_reference_style(ref_b)
+                st.session_state.transfer_result = {
+                    "before_b64": base64.b64encode(target_b).decode(),
+                    "after_b64": base64.b64encode(result_bytes).decode(),
+                    "style_info": ref_style_info,
+                }
+
+        xfer = st.session_state.get("transfer_result")
+        if xfer:
+            st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
+            st.markdown(_section_label("Result"), unsafe_allow_html=True)
+            bc, ac = st.columns(2)
+            with bc:
+                st.markdown(
+                    '<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
+                    'text-transform:uppercase;color:#AAABB8;margin-bottom:4px;">Before</div>',
+                    unsafe_allow_html=True
+                )
+                st.image(base64.b64decode(xfer["before_b64"]), use_container_width=True)
+            with ac:
+                st.markdown(
+                    '<div style="font-size:10px;font-weight:600;letter-spacing:0.06em;'
+                    'text-transform:uppercase;color:#AAABB8;margin-bottom:4px;">After</div>',
+                    unsafe_allow_html=True
+                )
+                st.image(base64.b64decode(xfer["after_b64"]), use_container_width=True)
+
+            si = xfer.get("style_info", {})
+            st.markdown(
+                f'<div style="background:#F0FFF4;border:1px solid #BBF7D0;border-radius:8px;'
+                f'padding:0.5rem 1rem;margin-top:0.5rem;font-size:12px;color:#166534;">'
+                f'✓ Applied: <strong>{si.get("filter_type", "").upper()} filter</strong> · '
+                f'brightness {si.get("brightness_delta", 0):+d} · '
+                f'contrast {si.get("contrast_delta", 0):+d}</div>',
+                unsafe_allow_html=True
+            )
+
+        elif not (ref_file and target_file):
+            _empty_state("◑", "Upload both photos to begin",
+                         "Reference sets the style. Your photo receives it.")
+
+
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _section_label(text: str) -> str:
@@ -1141,7 +1523,11 @@ def main():
         unsafe_allow_html=True
     )
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Edit", "Style", "Insights", "Assets"])
+    for key, default in [("cohesion_result", None), ("transfer_result", None)]:
+        if key not in st.session_state:
+            st.session_state[key] = default
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Edit", "Style", "Insights", "Assets", "Feed"])
     with tab1:
         tab_agent()
     with tab2:
@@ -1150,6 +1536,8 @@ def main():
         tab_evals()
     with tab4:
         tab_assets()
+    with tab5:
+        tab_feed()
 
 
 if __name__ == "__main__":
