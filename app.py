@@ -53,7 +53,7 @@ html, body, [class*="css"] {
 }
 
 /* ── Page background ──────────────────────────────── */
-.stApp { background-color: #F0EDF8; }
+.stApp { background-color: #F8F7FC; }
 .main .block-container {
     padding: 1.75rem 2rem 5rem;
     max-width: 1200px;
@@ -105,7 +105,7 @@ html, body, [class*="css"] {
 /* ── Chat input ───────────────────────────────────── */
 [data-testid="stChatInput"] {
     border-top: 1px solid #E4E0F5 !important;
-    background: #F0EDF8 !important;
+    background: #F8F7FC !important;
     padding: 0.75rem 2rem !important;
 }
 [data-testid="stChatInput"] textarea {
@@ -293,13 +293,24 @@ hr { border-color: #E4E0F5; margin: 1.5rem 0; }
 
 /* ── Preview panel — force visible even when empty ── */
 .stil-preview-panel {
-    background: #090817;
+    background: #0A0919;
     border-radius: 16px;
-    padding: 1.1rem;
-    min-height: 540px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.45), 0 2px 8px rgba(107,78,255,0.12);
+    padding: 1.2rem;
+    min-height: 560px;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(107,78,255,0.15);
+    border: 1px solid rgba(107,78,255,0.12);
     position: sticky;
     top: 1.5rem;
+}
+
+/* ── White cards throughout main content ─────────── */
+[data-testid="stFileUploader"] > section {
+    background: #FFFFFF !important;
+    border: 1.5px dashed #C8C0F8 !important;
+}
+[data-testid="stFileUploader"] > section:hover {
+    border-color: #6B4EFF !important;
+    background: #F0EEFF !important;
 }
 </style>
 """
@@ -369,7 +380,7 @@ def render_sidebar():
     def _slabel(t):
         return (
             f'<div style="font-size:9px;font-weight:700;letter-spacing:0.1em;'
-            f'text-transform:uppercase;color:#3A3860;margin-bottom:0.5rem;">{t}</div>'
+            f'text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:0.5rem;">{t}</div>'
         )
 
     st.sidebar.markdown(_slabel("Style profile"), unsafe_allow_html=True)
@@ -388,9 +399,9 @@ def render_sidebar():
 
         rows_html = "".join([
             f'<div style="display:flex;justify-content:space-between;align-items:center;'
-            f'padding:0.45rem 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
-            f'<span style="font-size:11px;color:#4A4870;font-weight:500;">{k}</span>'
-            f'<span style="font-size:12px;color:#C8C4F0;font-weight:600;">{v}</span></div>'
+            f'padding:0.45rem 0;border-bottom:1px solid rgba(255,255,255,0.06);">'
+            f'<span style="font-size:11px;color:rgba(255,255,255,0.38);font-weight:500;">{k}</span>'
+            f'<span style="font-size:12px;color:rgba(255,255,255,0.88);font-weight:600;">{v}</span></div>'
             for k, v in [
                 ("Style", tone_display),
                 ("Crop", crop.capitalize() if crop not in ("—", "none") else "—"),
@@ -398,14 +409,14 @@ def render_sidebar():
             ]
         ])
         st.sidebar.markdown(
-            f'<div style="background:rgba(107,78,255,0.08);border:1px solid rgba(107,78,255,0.18);'
+            f'<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);'
             f'border-radius:12px;padding:0.25rem 0.9rem 0.5rem;">'
             f'{rows_html}</div>',
             unsafe_allow_html=True
         )
         if notes:
             st.sidebar.markdown(
-                f'<div style="font-size:11px;color:#3A3860;line-height:1.55;'
+                f'<div style="font-size:11px;color:rgba(255,255,255,0.32);line-height:1.55;'
                 f'margin-top:0.55rem;font-style:italic;">{notes}</div>',
                 unsafe_allow_html=True
             )
@@ -418,17 +429,17 @@ def render_sidebar():
             meta_parts.append(f"updated {updated[:10]}")
         if meta_parts:
             st.sidebar.markdown(
-                f'<div style="font-size:10px;color:#252445;margin-top:0.4rem;">'
+                f'<div style="font-size:10px;color:rgba(255,255,255,0.18);margin-top:0.4rem;">'
                 f'{" · ".join(meta_parts)}</div>',
                 unsafe_allow_html=True
             )
     else:
         st.sidebar.markdown(
-            '<div style="background:rgba(107,78,255,0.07);'
-            'border:1.5px dashed rgba(107,78,255,0.2);border-radius:12px;'
+            '<div style="background:rgba(107,78,255,0.08);'
+            'border:1.5px dashed rgba(107,78,255,0.3);border-radius:12px;'
             'padding:1rem 0.9rem;text-align:center;">'
-            '<div style="font-size:1.5rem;margin-bottom:0.35rem;color:#2A2850;">✦</div>'
-            '<div style="font-size:12px;color:#3A3860;line-height:1.7;">'
+            '<div style="font-size:1.5rem;margin-bottom:0.35rem;color:rgba(107,78,255,0.5);">✦</div>'
+            '<div style="font-size:12px;color:rgba(255,255,255,0.3);line-height:1.7;">'
             'Style profile builds<br>automatically as you edit.</div>'
             '</div>',
             unsafe_allow_html=True
@@ -438,15 +449,15 @@ def render_sidebar():
     palette = memory.get("color_palette", [])
     if palette:
         st.sidebar.markdown(
-            '<hr style="border-color:rgba(255,255,255,0.05);margin:1rem 0 0.75rem;">'
+            '<hr style="border-color:rgba(255,255,255,0.07);margin:1rem 0 0.75rem;">'
             + _slabel("Palette"),
             unsafe_allow_html=True
         )
         swatches = "".join(
-            f'<span title="{c}" style="display:inline-block;width:22px;height:22px;'
-            f'border-radius:6px;background:{c};margin-right:4px;'
-            f'border:1px solid rgba(255,255,255,0.12);'
-            f'box-shadow:0 2px 6px rgba(0,0,0,0.3);cursor:pointer;"></span>'
+            f'<span title="{c}" style="display:inline-block;width:24px;height:24px;'
+            f'border-radius:6px;background:{c};margin-right:5px;'
+            f'border:1px solid rgba(255,255,255,0.15);'
+            f'box-shadow:0 2px 8px rgba(0,0,0,0.4);cursor:pointer;"></span>'
             for c in palette
         )
         st.sidebar.markdown(
@@ -458,7 +469,7 @@ def render_sidebar():
     choices_log = memory.get("choices_log", [])
     if choices_log:
         st.sidebar.markdown(
-            '<hr style="border-color:rgba(255,255,255,0.05);margin:1rem 0 0.75rem;">'
+            '<hr style="border-color:rgba(255,255,255,0.07);margin:1rem 0 0.75rem;">'
             + _slabel("Recent choices"),
             unsafe_allow_html=True
         )
@@ -466,8 +477,8 @@ def render_sidebar():
         for entry in choices_log[:3]:
             ts = entry.get("ts", "")
             pills = "".join(
-                f'<span style="display:inline-block;background:rgba(107,78,255,0.18);'
-                f'color:#9B81FF;border:1px solid rgba(107,78,255,0.3);border-radius:20px;'
+                f'<span style="display:inline-block;background:rgba(107,78,255,0.22);'
+                f'color:#B0A0FF;border:1px solid rgba(107,78,255,0.35);border-radius:20px;'
                 f'font-size:10px;padding:1px 7px;margin:0 2px 2px 0;">'
                 f'{ICONS.get(k, "·")} {v if k != "brightness" else (f"+{v}" if v > 0 else str(v))}'
                 f'</span>'
@@ -475,7 +486,7 @@ def render_sidebar():
             )
             st.sidebar.markdown(
                 f'<div style="margin-bottom:0.4rem;">'
-                f'<div style="font-size:10px;color:#252445;margin-bottom:2px;">{ts}</div>'
+                f'<div style="font-size:10px;color:rgba(255,255,255,0.2);margin-bottom:2px;">{ts}</div>'
                 f'{pills}</div>',
                 unsafe_allow_html=True
             )
@@ -653,11 +664,29 @@ def _render_preview_panel():
         st.markdown(
             '<div class="stil-preview-panel" style="display:flex;flex-direction:column;'
             'align-items:center;justify-content:center;text-align:center;">'
-            '<div style="font-size:3.5rem;color:#161430;margin-bottom:0.9rem;">◑</div>'
-            '<div style="font-size:12px;color:#2A284A;line-height:1.75;">'
-            'Upload a photo<br>to see platform exports<br>'
-            '<span style="font-size:10px;color:#1A1838;margin-top:6px;display:block;">'
-            'Instagram · Reels · Twitter · LinkedIn</span></div>'
+            '<div style="width:56px;height:56px;border-radius:50%;'
+            'background:rgba(107,78,255,0.12);border:1px solid rgba(107,78,255,0.2);'
+            'display:flex;align-items:center;justify-content:center;margin-bottom:1rem;">'
+            '<span style="font-size:1.5rem;color:rgba(107,78,255,0.5);">◑</span></div>'
+            '<div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.25);'
+            'margin-bottom:0.4rem;">Platform exports</div>'
+            '<div style="font-size:11px;color:rgba(255,255,255,0.15);line-height:1.8;">'
+            'Upload a photo to see your edit<br>cropped for every platform</div>'
+            '<div style="display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap;'
+            'justify-content:center;">'
+            '<span style="font-size:9px;font-weight:700;color:#E1306C;'
+            'background:rgba(225,48,108,0.1);border:1px solid rgba(225,48,108,0.2);'
+            'border-radius:12px;padding:3px 9px;">Instagram</span>'
+            '<span style="font-size:9px;font-weight:700;color:#C13584;'
+            'background:rgba(193,53,132,0.1);border:1px solid rgba(193,53,132,0.2);'
+            'border-radius:12px;padding:3px 9px;">Reels</span>'
+            '<span style="font-size:9px;font-weight:700;color:#1DA1F2;'
+            'background:rgba(29,161,242,0.1);border:1px solid rgba(29,161,242,0.2);'
+            'border-radius:12px;padding:3px 9px;">Twitter</span>'
+            '<span style="font-size:9px;font-weight:700;color:#0A66C2;'
+            'background:rgba(10,102,194,0.1);border:1px solid rgba(10,102,194,0.2);'
+            'border-radius:12px;padding:3px 9px;">LinkedIn</span>'
+            '</div>'
             '</div>',
             unsafe_allow_html=True
         )
@@ -738,15 +767,15 @@ def tab_agent():
         _prefs_text = " · ".join(_prefs[:3]) if _prefs else "your aesthetic"
         _count = f"{len(_log)} edit{'s' if len(_log) != 1 else ''}" if _log else ""
         st.markdown(
-            f'<div style="background:linear-gradient(135deg,#EDE8FF,#EAF1FF);'
-            f'border:1px solid #D4CCFF;border-radius:10px;padding:0.55rem 1rem;'
+            f'<div style="background:linear-gradient(135deg,#EBE5FF,#E5EDFF);'
+            f'border:1px solid #C4B8FF;border-radius:10px;padding:0.55rem 1rem;'
             f'margin-bottom:0.85rem;display:flex;align-items:center;justify-content:space-between;">'
             f'<div style="display:flex;align-items:center;gap:7px;">'
-            f'<span style="color:#6B4EFF;font-weight:800;">✦</span>'
-            f'<span style="font-size:12px;font-weight:700;color:#2A1A88;">Style active</span>'
-            f'<span style="font-size:12px;color:#6B6B88;"> — {_prefs_text}</span>'
+            f'<span style="color:#6B4EFF;font-weight:800;font-size:13px;">✦</span>'
+            f'<span style="font-size:12px;font-weight:700;color:#3D20CC;">Style active</span>'
+            f'<span style="font-size:12px;color:#5C5890;"> — {_prefs_text}</span>'
             f'</div>'
-            f'<span style="font-size:10px;color:#AAABB8;">{_count}</span>'
+            f'<span style="font-size:10px;color:#9B97CC;">{_count}</span>'
             f'</div>',
             unsafe_allow_html=True
         )
