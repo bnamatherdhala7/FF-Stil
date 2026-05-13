@@ -679,13 +679,21 @@ def _render_preview_panel():
                 )
             extra_html += '</div></div>'
 
-        # Detect which platform was explicitly requested via set_export_preset
+        # 1. Check if set_export_preset was called this session
         _export_tool = next(
             (t for t in reversed(trace) if t.get("tool") == "set_export_preset"), None
         )
         _requested_platform = (
             _export_tool.get("input", {}).get("platform") if _export_tool else None
         )
+        # 2. Fall back to style profile's saved export preference
+        if not _requested_platform:
+            _log = style.get("choices_log", [])
+            _sig = style.get("style_signature", {})
+            if _log and _log[0].get("export"):
+                _requested_platform = _log[0]["export"]
+            elif _sig.get("export_targets"):
+                _requested_platform = _sig["export_targets"][0]
         platform_grid = _platform_grid_html(after_bytes, requested=_requested_platform)
 
         st.markdown(
