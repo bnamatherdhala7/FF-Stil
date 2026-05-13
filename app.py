@@ -518,7 +518,7 @@ def _preview_style_pills(style: dict) -> str:
     return (
         f'<div style="margin-top:10px;padding-top:10px;'
         f'border-top:1px solid rgba(255,255,255,0.05);">'
-        f'<div style="font-size:8px;color:#2A284A;text-transform:uppercase;'
+        f'<div style="font-size:8px;color:rgba(255,255,255,0.5);text-transform:uppercase;'
         f'letter-spacing:0.08em;font-weight:700;margin-bottom:5px;">Active style</div>'
         f'{pill_html}</div>'
     )
@@ -534,23 +534,24 @@ def _platform_grid_html(after_bytes: bytes) -> str:
     cards = ""
     for crop in crops:
         cards += (
-            f'<div style="background:#0F0D25;border-radius:8px;overflow:hidden;'
-            f'border:1px solid rgba(255,255,255,0.05);">'
+            f'<div style="background:#0F0D25;border-radius:10px;overflow:hidden;'
+            f'border:1px solid rgba(255,255,255,0.08);'
+            f'box-shadow:0 2px 8px rgba(0,0,0,0.4);">'
             f'<img src="data:image/jpeg;base64,{crop["b64"]}" '
             f'style="width:100%;display:block;object-fit:cover;">'
-            f'<div style="padding:5px 7px;display:flex;justify-content:space-between;'
-            f'align-items:center;">'
+            f'<div style="padding:6px 8px;display:flex;justify-content:space-between;'
+            f'align-items:center;background:rgba(0,0,0,0.3);">'
             f'<span style="font-size:9px;font-weight:800;letter-spacing:0.04em;'
             f'text-transform:uppercase;color:{crop["color"]};">{crop["name"]}</span>'
-            f'<span style="font-size:8px;color:#2A284A;">{crop["size"]}</span>'
+            f'<span style="font-size:8px;color:rgba(255,255,255,0.45);font-weight:500;">{crop["size"]}</span>'
             f'</div></div>'
         )
 
     return (
-        f'<div style="margin-top:10px;">'
-        f'<div style="font-size:8px;color:#2A284A;text-transform:uppercase;'
-        f'letter-spacing:0.08em;font-weight:700;margin-bottom:7px;">Platform exports</div>'
-        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
+        f'<div style="margin-top:12px;">'
+        f'<div style="font-size:8px;color:rgba(255,255,255,0.45);text-transform:uppercase;'
+        f'letter-spacing:0.08em;font-weight:700;margin-bottom:8px;">Platform exports</div>'
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">'
         f'{cards}</div></div>'
     )
 
@@ -566,7 +567,7 @@ def _render_preview_panel():
 
     # ── Header label ──────────────────────────────────────────────────────────
     header = (
-        '<div style="font-size:9px;color:#252445;text-transform:uppercase;'
+        '<div style="font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;'
         'letter-spacing:0.1em;font-weight:700;margin-bottom:10px;">Preview</div>'
     )
 
@@ -586,27 +587,31 @@ def _render_preview_panel():
         tools_row = (
             f'<div style="margin-top:10px;padding-top:8px;'
             f'border-top:1px solid rgba(255,255,255,0.05);">'
-            f'<div style="font-size:8px;color:#2A284A;text-transform:uppercase;'
+            f'<div style="font-size:8px;color:rgba(255,255,255,0.35);text-transform:uppercase;'
             f'letter-spacing:0.08em;font-weight:700;margin-bottom:5px;">Applied</div>'
             f'<div style="display:flex;flex-wrap:wrap;">{trace_pills}</div></div>'
         ) if trace else ""
 
         # Before / After strip
         ba_strip = (
-            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">'
-            f'<div>'
-            f'<div style="font-size:8px;color:#2A284A;text-transform:uppercase;'
-            f'letter-spacing:0.07em;font-weight:700;margin-bottom:4px;">Before</div>'
+            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:4px;">'
+            f'<div style="position:relative;">'
+            f'<div style="position:absolute;top:7px;left:7px;z-index:1;'
+            f'font-size:8px;color:rgba(255,255,255,0.8);text-transform:uppercase;'
+            f'letter-spacing:0.07em;font-weight:700;'
+            f'background:rgba(0,0,0,0.45);border-radius:4px;padding:2px 6px;">Before</div>'
             f'<img src="data:image/jpeg;base64,{before_b64}" '
             f'style="width:100%;border-radius:7px;display:block;'
             f'border:1px solid rgba(255,255,255,0.05);">'
             f'</div>'
-            f'<div>'
-            f'<div style="font-size:8px;color:#9B81FF;text-transform:uppercase;'
-            f'letter-spacing:0.07em;font-weight:700;margin-bottom:4px;">After</div>'
+            f'<div style="position:relative;">'
+            f'<div style="position:absolute;top:7px;left:7px;z-index:1;'
+            f'font-size:8px;color:#B8A8FF;text-transform:uppercase;'
+            f'letter-spacing:0.07em;font-weight:700;'
+            f'background:rgba(107,78,255,0.55);border-radius:4px;padding:2px 6px;">After</div>'
             f'<img src="data:image/jpeg;base64,{after_b64}" '
             f'style="width:100%;border-radius:7px;display:block;'
-            f'border:1.5px solid rgba(107,78,255,0.45);">'
+            f'border:1.5px solid rgba(107,78,255,0.5);">'
             f'</div>'
             f'</div>'
         )
@@ -617,7 +622,7 @@ def _render_preview_panel():
         if len(extra_previews) > 1:
             extra_html = (
                 f'<div style="margin-top:8px;">'
-                f'<div style="font-size:8px;color:#2A284A;text-transform:uppercase;'
+                f'<div style="font-size:8px;color:rgba(255,255,255,0.35);text-transform:uppercase;'
                 f'letter-spacing:0.08em;font-weight:700;margin-bottom:6px;">'
                 f'All {len(extra_previews)} images edited</div>'
                 f'<div style="display:grid;grid-template-columns:repeat({min(len(extra_previews),3)},1fr);gap:5px;">'
@@ -628,7 +633,7 @@ def _render_preview_panel():
                     f'<img src="data:image/jpeg;base64,{p["after_b64"]}" '
                     f'style="width:100%;border-radius:6px;display:block;'
                     f'border:1px solid rgba(107,78,255,0.3);">'
-                    f'<div style="font-size:7px;color:#3A3860;margin-top:2px;'
+                    f'<div style="font-size:7px;color:rgba(255,255,255,0.28);margin-top:2px;'
                     f'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
                     f'{p["filename"]}</div></div>'
                 )
@@ -766,16 +771,23 @@ def tab_agent():
             _prefs += _sig["export_targets"][:1]
         _prefs_text = " · ".join(_prefs[:3]) if _prefs else "your aesthetic"
         _count = f"{len(_log)} edit{'s' if len(_log) != 1 else ''}" if _log else ""
+        _count_pill = (
+            f'<span style="font-size:9px;font-weight:700;color:#6B4EFF;'
+            f'background:rgba(107,78,255,0.12);border:1px solid rgba(107,78,255,0.25);'
+            f'border-radius:20px;padding:2px 8px;">{_count}</span>'
+        ) if _count else ""
         st.markdown(
             f'<div style="background:linear-gradient(135deg,#EBE5FF,#E5EDFF);'
-            f'border:1px solid #C4B8FF;border-radius:10px;padding:0.55rem 1rem;'
+            f'border:1px solid #C4B8FF;border-radius:12px;padding:0.6rem 1rem;'
             f'margin-bottom:0.85rem;display:flex;align-items:center;justify-content:space-between;">'
-            f'<div style="display:flex;align-items:center;gap:7px;">'
-            f'<span style="color:#6B4EFF;font-weight:800;font-size:13px;">✦</span>'
-            f'<span style="font-size:12px;font-weight:700;color:#3D20CC;">Style active</span>'
-            f'<span style="font-size:12px;color:#5C5890;"> — {_prefs_text}</span>'
+            f'<div style="display:flex;align-items:center;gap:8px;">'
+            f'<span style="color:#6B4EFF;font-weight:800;font-size:14px;">✦</span>'
+            f'<div>'
+            f'<span style="font-size:11px;font-weight:700;color:#3D20CC;">Style active</span>'
+            f'<span style="font-size:12px;color:#5C5890;margin-left:4px;">· {_prefs_text}</span>'
             f'</div>'
-            f'<span style="font-size:10px;color:#9B97CC;">{_count}</span>'
+            f'</div>'
+            f'{_count_pill}'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -940,9 +952,16 @@ def tab_agent():
         # Chat history
         if not st.session_state.messages:
             st.markdown(
-                '<div style="text-align:center;padding:3rem 1rem;">'
-                '<div style="font-size:1.75rem;color:#D4CCFF;margin-bottom:0.5rem;">✦</div>'
-                '<div style="font-size:13px;color:#AAABB8;">Your conversation appears here.</div>'
+                '<div style="text-align:center;padding:2.5rem 1rem 1.5rem;">'
+                '<div style="width:52px;height:52px;border-radius:50%;margin:0 auto 0.85rem;'
+                'background:linear-gradient(135deg,rgba(107,78,255,0.15),rgba(107,78,255,0.05));'
+                'border:1px solid rgba(107,78,255,0.2);display:flex;align-items:center;'
+                'justify-content:center;">'
+                '<span style="font-size:1.4rem;color:rgba(107,78,255,0.5);">✦</span></div>'
+                '<div style="font-size:15px;font-weight:600;color:#2A2850;margin-bottom:0.4rem;">'
+                'Upload a photo and describe your edit</div>'
+                '<div style="font-size:12px;color:#9494AE;line-height:1.7;max-width:240px;margin:0 auto;">'
+                'Stil executes the tools, shows before/after,<br>and remembers your choices forever.</div>'
                 '</div>',
                 unsafe_allow_html=True
             )
@@ -1844,13 +1863,22 @@ def main():
     render_sidebar()
 
     st.markdown(
-        '<div style="margin-bottom:0.15rem;display:flex;align-items:baseline;gap:7px;">'
-        '<span style="font-size:28px;font-weight:800;letter-spacing:-0.05em;color:#0F0E1C;">Stil</span>'
-        '<span style="font-size:28px;font-weight:800;color:#6B4EFF;">✦</span>'
+        '<div style="display:flex;align-items:center;justify-content:space-between;'
+        'margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid #E4E0F5;">'
+        '<div>'
+        '<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px;">'
+        '<span style="font-size:26px;font-weight:800;letter-spacing:-0.05em;color:#0F0E1C;">Stil</span>'
+        '<span style="font-size:26px;font-weight:800;color:#6B4EFF;">✦</span>'
         '</div>'
-        '<div style="font-size:11px;color:#9494AE;letter-spacing:0.06em;'
-        'text-transform:uppercase;font-weight:600;margin-bottom:1.4rem;">'
-        'Creative editing with memory'
+        '<div style="font-size:11px;color:#9494AE;letter-spacing:0.05em;font-weight:500;">'
+        'Your creative style, remembered.'
+        '</div>'
+        '</div>'
+        '<div style="display:flex;gap:6px;">'
+        '<span style="font-size:9px;font-weight:700;color:#6B4EFF;background:rgba(107,78,255,0.08);'
+        'border:1px solid rgba(107,78,255,0.18);border-radius:20px;padding:3px 9px;'
+        'letter-spacing:0.04em;text-transform:uppercase;">Memory on</span>'
+        '</div>'
         '</div>',
         unsafe_allow_html=True
     )
@@ -1860,7 +1888,7 @@ def main():
         if key not in st.session_state:
             st.session_state[key] = default
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Edit", "Style", "Insights", "Assets", "Feed"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["✦ Edit", "◑ Style", "◎ Insights", "◻ Assets", "⊡ Feed"])
     with tab1:
         tab_agent()
     with tab2:
