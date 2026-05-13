@@ -524,15 +524,56 @@ def _preview_style_pills(style: dict) -> str:
     )
 
 
-def _platform_grid_html(after_bytes: bytes) -> str:
-    """Build the 2×2 platform export grid HTML from edited image bytes."""
+# Maps set_export_preset platform values → display name in PLATFORM_SPECS
+_PLATFORM_ALIAS = {
+    "instagram": "Instagram",
+    "reels":     "Reels",
+    "tiktok":    "Reels",
+    "twitter":   "Twitter",
+    "linkedin":  "LinkedIn",
+}
+
+
+def _platform_grid_html(after_bytes: bytes, requested: str | None = None) -> str:
+    """
+    Build platform export grid HTML.
+    If `requested` is a known platform name, show only that crop full-width.
+    Otherwise show all 4 in a 2×2 grid.
+    """
     try:
-        crops = _get_platform_crops(after_bytes)
+        all_crops = _get_platform_crops(after_bytes)
     except Exception:
         return ""
 
+    target = _PLATFORM_ALIAS.get((requested or "").lower())
+
+    if target:
+        # Show only the requested platform — full width, larger
+        crop = next((c for c in all_crops if c["name"] == target), None)
+        if not crop:
+            crop = all_crops[0]
+        return (
+            f'<div style="margin-top:12px;">'
+            f'<div style="font-size:8px;color:rgba(255,255,255,0.45);text-transform:uppercase;'
+            f'letter-spacing:0.08em;font-weight:700;margin-bottom:8px;">Platform export</div>'
+            f'<div style="background:#0F0D25;border-radius:10px;overflow:hidden;'
+            f'border:1.5px solid {crop["color"]}40;box-shadow:0 2px 8px rgba(0,0,0,0.4);">'
+            f'<img src="data:image/jpeg;base64,{crop["b64"]}" '
+            f'style="width:100%;display:block;object-fit:cover;">'
+            f'<div style="padding:7px 10px;display:flex;justify-content:space-between;'
+            f'align-items:center;background:rgba(0,0,0,0.35);">'
+            f'<span style="font-size:10px;font-weight:800;letter-spacing:0.04em;'
+            f'text-transform:uppercase;color:{crop["color"]};">{crop["name"]}</span>'
+            f'<span style="font-size:8px;color:rgba(255,255,255,0.5);font-weight:500;">{crop["size"]}</span>'
+            f'</div></div>'
+            f'<div style="margin-top:6px;font-size:7px;color:rgba(255,255,255,0.25);">'
+            f'Other sizes available — ask for Reels, Twitter, or LinkedIn</div>'
+            f'</div>'
+        )
+
+    # No specific platform — show all 4
     cards = ""
-    for crop in crops:
+    for crop in all_crops:
         cards += (
             f'<div style="background:#0F0D25;border-radius:10px;overflow:hidden;'
             f'border:1px solid rgba(255,255,255,0.08);'
@@ -546,7 +587,6 @@ def _platform_grid_html(after_bytes: bytes) -> str:
             f'<span style="font-size:8px;color:rgba(255,255,255,0.45);font-weight:500;">{crop["size"]}</span>'
             f'</div></div>'
         )
-
     return (
         f'<div style="margin-top:12px;">'
         f'<div style="font-size:8px;color:rgba(255,255,255,0.45);text-transform:uppercase;'
@@ -639,7 +679,14 @@ def _render_preview_panel():
                 )
             extra_html += '</div></div>'
 
-        platform_grid = _platform_grid_html(after_bytes)
+        # Detect which platform was explicitly requested via set_export_preset
+        _export_tool = next(
+            (t for t in reversed(trace) if t.get("tool") == "set_export_preset"), None
+        )
+        _requested_platform = (
+            _export_tool.get("input", {}).get("platform") if _export_tool else None
+        )
+        platform_grid = _platform_grid_html(after_bytes, requested=_requested_platform)
 
         st.markdown(
             f'<div class="stil-preview-panel">'
