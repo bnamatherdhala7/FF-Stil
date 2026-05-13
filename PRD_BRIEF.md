@@ -221,5 +221,6 @@ All three: **yes.** And every design decision maps to a requirement the FF Agent
 
 ---
 
-*Full architecture, research foundation, feature spec: [PRD.md](PRD.md)*
+*Full architecture and feature spec: [PRD.md](PRD.md)*
+*Workflow diagrams (eval pipeline + style injection): [WORKFLOW_DIAGRAMS.md](WORKFLOW_DIAGRAMS.md)*
 *Prototype: `cd stil && streamlit run app.py`*
