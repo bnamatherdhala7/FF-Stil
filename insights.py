@@ -169,23 +169,34 @@ def load_all_sessions() -> list:
 
 
 def build_turns(session: dict) -> list:
-    """Pair user/agent messages into gradeable turns."""
+    """Pair user/agent messages into gradeable turns.
+
+    Tool calls are assigned only to the last turn in a session — in practice
+    editing requests come at the end after any clarifying dialogue, and the
+    JSONL format writes all tool calls after all messages (no per-turn index).
+    """
     turns = []
     messages = session["messages"]
     tool_calls = session["tool_calls"]
+    all_tools = [t["tool"] for t in tool_calls]
+
+    valid_pairs = []
     for i in range(0, len(messages) - 1, 2):
         if i + 1 < len(messages):
             user_msg = messages[i].get("content", "")
             agent_msg = messages[i + 1].get("content", "")
             if isinstance(user_msg, str) and isinstance(agent_msg, str):
-                tools = [t["tool"] for t in tool_calls]
-                turns.append({
-                    "session": session["filename"],
-                    "turn": i // 2 + 1,
-                    "user_message": user_msg[:300],
-                    "agent_response": agent_msg[:300],
-                    "tools_called": tools,
-                })
+                valid_pairs.append((i // 2 + 1, user_msg, agent_msg))
+
+    last_idx = len(valid_pairs) - 1
+    for idx, (turn_num, user_msg, agent_msg) in enumerate(valid_pairs):
+        turns.append({
+            "session": session["filename"],
+            "turn": turn_num,
+            "user_message": user_msg[:300],
+            "agent_response": agent_msg[:300],
+            "tools_called": all_tools if idx == last_idx else [],
+        })
     return turns
 
 
@@ -205,8 +216,17 @@ def _grade_haiku(turn: dict) -> dict:
     )
     try:
         raw = response.content[0].text.strip()
+        # Strip markdown code fences Haiku sometimes wraps around JSON
+        if "```" in raw:
+            parts = raw.split("```")
+            # parts[1] is the fenced block: "json\n{...}" or just "{...}"
+            raw = parts[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
         return json.loads(raw)
-    except Exception:
+    except Exception as e:
+        print(f"[Grade] parse failed: {e} | raw: {response.content[0].text[:80]!r}")
         return {"tool_accuracy": 3, "goal_completion": 3, "creative_intent": 3}
 
 

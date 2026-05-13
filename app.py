@@ -1551,13 +1551,25 @@ def tab_evals():
 
     if graded:
         st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-        st.markdown(_section_label("Score by turn"), unsafe_allow_html=True)
-        df = pd.DataFrame([{
-            "Turn": f"T{t['turn']}",
-            "Tool accuracy": t.get("tool_accuracy", 0),
-            "Goal completion": t.get("goal_completion", 0),
-            "Creative intent": t.get("creative_intent", 0),
-        } for t in graded]).set_index("Turn")
+        st.markdown(_section_label("Score by turn (avg across sessions)"), unsafe_allow_html=True)
+        # Average scores per turn position to avoid stacking duplicate T1s from multiple sessions
+        from collections import defaultdict
+        turn_buckets: dict = defaultdict(lambda: {"tool_accuracy": [], "goal_completion": [], "creative_intent": []})
+        for t in graded:
+            key = f"T{t['turn']}"
+            turn_buckets[key]["tool_accuracy"].append(t.get("tool_accuracy", 0))
+            turn_buckets[key]["goal_completion"].append(t.get("goal_completion", 0))
+            turn_buckets[key]["creative_intent"].append(t.get("creative_intent", 0))
+        chart_rows = []
+        for turn_key in sorted(turn_buckets.keys()):
+            b = turn_buckets[turn_key]
+            chart_rows.append({
+                "Turn": turn_key,
+                "Tool accuracy": round(sum(b["tool_accuracy"]) / len(b["tool_accuracy"]), 1),
+                "Goal completion": round(sum(b["goal_completion"]) / len(b["goal_completion"]), 1),
+                "Creative intent": round(sum(b["creative_intent"]) / len(b["creative_intent"]), 1),
+            })
+        df = pd.DataFrame(chart_rows).set_index("Turn")
         st.bar_chart(df, height=180, color=["#6B4EFF", "#22C55E", "#F97316"])
 
         unique_sessions = list(dict.fromkeys(t["session"] for t in graded))
