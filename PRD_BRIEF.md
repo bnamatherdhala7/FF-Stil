@@ -258,11 +258,11 @@ All three: **yes.** And every design decision maps to a requirement the FF Agent
 
 ### The ask
 
-Three decisions to make from this review:
+This is built inside Adobe, for Adobe. Three decisions to make from this review:
 
-1. **Ship v0.2?** — 10–15 creator research sessions + mood tags + Style Brief PDF. Validates whether behavioral memory feels accurate by session 5 with real professionals. Low cost, high signal.
-2. **Fund the Canva SDK integration (v0.3)?** — 265M MAU, public API, zero gatekeeping. The distribution unlock. Requires engineering allocation, no Adobe partnership needed.
-3. **Commission the FF Agentic harness reference design (v0.5)?** — Every architectural decision in Stil maps to a harness requirement. This prototype de-risks the harness build. Requires alignment with the FF Agentic team on scope and timeline.
+1. **Greenlight v0.2?** — 10–15 creator research sessions + mood tags + Style Brief PDF. Validates whether behavioral memory feels accurate by session 5. Low cost, high signal. No external dependencies.
+2. **Scope the Lightroom integration?** — The behavioral memory architecture already maps to Lightroom operations. The missing piece is MCP connecting Stil's agent to Lightroom's editing engine. This is the version that makes the prototype real for Adobe's 41M CC subscribers.
+3. **Align with FF Agentic on v0.5?** — Every architectural decision here — behavioral memory priority, intent grading, RAG eval infra — maps to a requirement the FF Agentic harness needs to resolve. This prototype de-risks that build. Requires one conversation with the FF Agentic team to scope.
 
 ---
 
