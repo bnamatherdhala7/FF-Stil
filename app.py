@@ -17,7 +17,7 @@ from agent import (run_agent_streaming, load_style, save_style, extract_and_save
                    translate_brief_to_edits, format_edit_plan)
 from asset_library import list_assets, find_asset
 from creative_tools import preview_edits
-from feed_analyzer import analyze_feed, extract_reference_style, apply_style_transfer
+from feed_analyzer import analyze_feed, extract_reference_style, apply_style_transfer, normalize_feed
 
 load_dotenv()
 
@@ -1837,22 +1837,9 @@ def tab_feed():
                     unsafe_allow_html=True
                 )
                 if st.button("✦ Apply my style to all photos", type="primary", key="apply_style_feed"):
-                    with st.spinner("Applying your style to all photos…"):
-                        tool_trace = []
-                        if choices.get("filter"):
-                            tool_trace.append({"tool": "apply_filter",
-                                               "input": {"filename": "x", "filter_type": choices["filter"]},
-                                               "result": {}})
-                        if choices.get("brightness"):
-                            tool_trace.append({"tool": "adjust_brightness",
-                                               "input": {"filename": "x", "level": int(choices["brightness"])},
-                                               "result": {}})
-                        if choices.get("contrast"):
-                            tool_trace.append({"tool": "adjust_contrast",
-                                               "input": {"filename": "x", "level": int(choices["contrast"])},
-                                               "result": {}})
-                        styled = [preview_edits(b, tool_trace) or b for b in stored_bytes]
-                        st.session_state.feed_original_score = score  # save before overwrite
+                    with st.spinner("Normalizing all photos to your style targets…"):
+                        styled = normalize_feed(stored_bytes, style)
+                        st.session_state.feed_original_score = score
                         st.session_state.feed_styled_bytes = styled
                         new_result = analyze_feed(styled, stored_names)
                         st.session_state.cohesion_result = new_result

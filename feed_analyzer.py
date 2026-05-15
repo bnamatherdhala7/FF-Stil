@@ -5,7 +5,21 @@ All Pillow-based. Zero API calls. $0 cost.
 
 import io
 import colorsys
-from PIL import Image, ImageStat
+from PIL import Image, ImageStat, ImageEnhance
+
+# Absolute target values per filter type — used by normalize_to_targets()
+_TARGET_TEMPS = {
+    "warm": 1.35, "cool": 0.80, "vintage": 1.15,
+    "dramatic": 1.0, "bw": 1.0, "vivid": 1.10, "soft": 1.05,
+}
+_TARGET_SATS = {
+    "warm": 0.38, "cool": 0.30, "vintage": 0.25,
+    "dramatic": 0.40, "bw": 0.05, "vivid": 0.55, "soft": 0.22,
+}
+_TARGET_CONTRASTS = {
+    "warm": 40.0, "cool": 38.0, "vintage": 32.0,
+    "dramatic": 60.0, "bw": 50.0, "vivid": 45.0, "soft": 28.0,
+}
 
 
 def _pil_metrics(image_bytes: bytes) -> dict:
@@ -182,6 +196,78 @@ def extract_reference_style(image_bytes: bytes) -> dict:
         "description": DESCRIPTIONS[filter_type],
         "metrics": m,
     }
+
+
+def normalize_to_targets(
+    image_bytes: bytes,
+    target_temp: float,
+    target_brightness: float,
+    target_contrast: float,
+    target_saturation: float,
+) -> bytes:
+    """
+    Adjust a single image so its metrics land at the given absolute targets.
+    Uses ratio-based Pillow adjustments — not additive deltas — so every photo
+    converges to the same values regardless of where it started.
+    """
+    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    m = _pil_metrics(image_bytes)
+
+    # Color temperature: scale R and B channels in opposite directions
+    current_temp = max(m["color_temp"], 0.01)
+    if abs(current_temp - target_temp) > 0.05:
+        r_factor = min(2.0, max(0.3, (target_temp / current_temp) ** 0.5))
+        b_factor = min(2.0, max(0.3, (current_temp / target_temp) ** 0.5))
+        r_ch, g_ch, b_ch = img.split()
+        r_ch = r_ch.point(lambda p: min(255, int(p * r_factor)))
+        b_ch = b_ch.point(lambda p: min(255, int(p * b_factor)))
+        img = Image.merge("RGB", (r_ch, g_ch, b_ch))
+
+    # Brightness
+    current_brightness = max(m["brightness"], 1.0)
+    if abs(current_brightness - target_brightness) > 5:
+        factor = min(3.0, max(0.2, target_brightness / current_brightness))
+        img = ImageEnhance.Brightness(img).enhance(factor)
+
+    # Contrast
+    current_contrast = max(m["contrast"], 1.0)
+    if abs(current_contrast - target_contrast) > 3:
+        factor = min(3.0, max(0.2, target_contrast / current_contrast))
+        img = ImageEnhance.Contrast(img).enhance(factor)
+
+    # Saturation
+    current_saturation = max(m["saturation"], 0.01)
+    if abs(current_saturation - target_saturation) > 0.03:
+        factor = min(4.0, max(0.0, target_saturation / current_saturation))
+        img = ImageEnhance.Color(img).enhance(factor)
+
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=92)
+    return buf.getvalue()
+
+
+def normalize_feed(image_bytes_list: list, style: dict) -> list:
+    """
+    Normalize all feed images to the same absolute targets derived from the
+    style profile's choices_log. Returns a list of JPEG bytes.
+
+    Because every photo is nudged to the same absolute target (not shifted by
+    the same delta), variance across the feed collapses and cohesion score rises.
+    """
+    choices = (style.get("choices_log") or [{}])[0]
+    filter_type = choices.get("filter", "soft")
+    brightness_delta = int(choices.get("brightness", 0))
+    contrast_delta = int(choices.get("contrast", 0))
+
+    target_temp = _TARGET_TEMPS.get(filter_type, 1.0)
+    target_saturation = _TARGET_SATS.get(filter_type, 0.30)
+    target_brightness = max(40.0, min(220.0, 128.0 + brightness_delta))
+    target_contrast = max(15.0, min(90.0, _TARGET_CONTRASTS.get(filter_type, 40.0) + contrast_delta))
+
+    return [
+        normalize_to_targets(b, target_temp, target_brightness, target_contrast, target_saturation)
+        for b in image_bytes_list
+    ]
 
 
 def apply_style_transfer(target_bytes: bytes, reference_bytes: bytes) -> bytes:
