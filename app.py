@@ -1731,6 +1731,7 @@ def tab_feed():
                 st.session_state.feed_image_bytes = None
                 st.session_state.feed_filenames = None
                 st.session_state.feed_styled_bytes = None
+                st.session_state.feed_original_score = None
                 st.session_state.feed_upload_key += 1
                 st.rerun()
 
@@ -1851,14 +1852,51 @@ def tab_feed():
                                                "input": {"filename": "x", "level": int(choices["contrast"])},
                                                "result": {}})
                         styled = [preview_edits(b, tool_trace) or b for b in stored_bytes]
+                        st.session_state.feed_original_score = score  # save before overwrite
                         st.session_state.feed_styled_bytes = styled
                         new_result = analyze_feed(styled, stored_names)
                         st.session_state.cohesion_result = new_result
                     st.rerun()
 
             styled_bytes = st.session_state.get("feed_styled_bytes")
+            orig_score = st.session_state.get("feed_original_score")
             if styled_bytes and stored_bytes:
-                st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+                st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
+
+                # Before → After score banner
+                if orig_score is not None:
+                    new_score = result["score"]
+                    delta = new_score - orig_score
+                    delta_color = "#22C55E" if delta > 0 else "#EF4444"
+                    delta_sign = "+" if delta >= 0 else ""
+                    st.markdown(
+                        f'<div style="background:#FFFFFF;border:1px solid #E4E0F5;border-radius:14px;'
+                        f'padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;'
+                        f'gap:1.5rem;box-shadow:0 2px 8px rgba(107,78,255,0.07);">'
+                        f'<div style="text-align:center;">'
+                        f'<div style="font-size:9px;font-weight:700;text-transform:uppercase;'
+                        f'letter-spacing:0.08em;color:#9494AE;margin-bottom:4px;">Before</div>'
+                        f'<div style="font-size:2.2rem;font-weight:800;color:#9494AE;">{orig_score}'
+                        f'<span style="font-size:0.9rem;font-weight:400;"> /100</span></div>'
+                        f'</div>'
+                        f'<div style="font-size:1.75rem;color:#C8C8DA;">→</div>'
+                        f'<div style="text-align:center;">'
+                        f'<div style="font-size:9px;font-weight:700;text-transform:uppercase;'
+                        f'letter-spacing:0.08em;color:#9494AE;margin-bottom:4px;">After</div>'
+                        f'<div style="font-size:2.2rem;font-weight:800;color:#0F0E1C;">{new_score}'
+                        f'<span style="font-size:0.9rem;font-weight:400;"> /100</span></div>'
+                        f'</div>'
+                        f'<div style="margin-left:auto;background:{"#F0FFF4" if delta > 0 else "#FFF5F5"};'
+                        f'border:1px solid {"#BBF7D0" if delta > 0 else "#FCA5A5"};'
+                        f'border-radius:10px;padding:0.4rem 0.9rem;text-align:center;">'
+                        f'<div style="font-size:1.4rem;font-weight:800;color:{delta_color};">'
+                        f'{delta_sign}{delta}</div>'
+                        f'<div style="font-size:10px;color:{delta_color};font-weight:600;">pts</div>'
+                        f'</div>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+
                 st.markdown(_section_label("Before → After (style applied to all)"), unsafe_allow_html=True)
                 n_show = min(len(stored_bytes), len(styled_bytes), 6)
                 for i in range(n_show):
@@ -2026,7 +2064,8 @@ def main():
     for key, default in [("cohesion_result", None), ("transfer_result", None),
                           ("eval_result", None), ("all_previews", []),
                           ("feed_image_bytes", None), ("feed_filenames", None),
-                          ("feed_styled_bytes", None), ("feed_upload_key", 0)]:
+                          ("feed_styled_bytes", None), ("feed_upload_key", 0),
+                          ("feed_original_score", None)]:
         if key not in st.session_state:
             st.session_state[key] = default
 
