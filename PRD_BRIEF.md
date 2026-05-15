@@ -137,25 +137,22 @@ Style profile updated from tool calls — no re-briefing ever
 
 ---
 
-## 6. What makes this agentic — not just a chatbot
+## 6. Under the hood — what makes this work
 
-**The test:** if you replaced Claude with hardcoded if/else, would it still work?
+**Why this is an agent, not a chatbot:** if you replaced Claude with hardcoded if/else logic, would Stil still work? A chatbot: yes. Stil: no — Claude reasons about which tools to call, executes them, observes each result, decides the next action, loops until complete, then extracts the style update. Remove the reasoning and the system breaks. This matters more in creative workflows than anywhere else: a writing agent that forgets context produces a worse paragraph. A creative agent that forgets context produces a feed that no longer looks like the creator's brand. The stakes are cumulative and visible.
 
-A chatbot: yes. Stil: no — Claude reasons about which tools to call, executes them, observes each result, decides the next action, loops until complete, extracts the style update. Remove the reasoning and the system breaks.
+**Two memory layers, explicit priority:**
 
-This distinction matters more in creative workflows than anywhere else. A writing agent that forgets context produces a worse paragraph. A creative agent that forgets context produces a feed that no longer looks like the creator's brand. **The stakes are cumulative and visible.**
-
----
-
-## 7. The intelligence we added
-
-| Signal | What Stil does with it | Why it matters |
+| Layer | Source | Wins when |
 |---|---|---|
-| Tool call parameters | Written directly to `choices_log` — no AI paraphrasing | The literal record of what happened, highest trust |
-| Full session transcript | Haiku extracts `style_signature` — aesthetic intent the tool calls don't capture | Fills the gaps behavioral data can't |
-| Frequency across sessions | Dominant pattern vs. recent divergence surfaced at injection time | Warm 8/11 sessions is a preference. Cool last session is a divergence — not blindly followed |
-| Feed photos (Pillow) | Variance across color temp, brightness, contrast, saturation → 0–100 score | First objective measurement of feed consistency at individual creator level |
-| Session transcript → intent gap | Graded on whether output served *actual creative goal*, not just literal task | 5/5 on completion + 1/5 on intent = prompt architecture failure, not model failure |
+| `choices_log` | Written directly from tool call parameters — no AI paraphrasing | Always — highest trust, injected first |
+| `style_signature` | Haiku reads the session transcript, extracts aesthetic intent | Fills dimensions tool calls don't cover (mood, context, creative purpose) |
+
+**Frequency analysis — not just recency.** The system doesn't blindly follow the last click. It surfaces the pattern: *"cool (last session) — usual style is warm 8/11 sessions; apply cool unless user says otherwise."* Warm 8/11 is a preference. Cool last session is a divergence worth noting — not overriding.
+
+**Feed Cohesion Score.** Pillow variance analysis across color temperature, brightness, contrast, and saturation. 0–100 score with a specific diagnosis. Zero API calls. The first objective measurement of feed consistency at the individual creator level.
+
+**Creative intent grading.** A session can score 5/5 on goal completion and 1/5 on creative intent — the agent did exactly what was typed and completely missed the creative purpose. That gap is the signal no rule-based system can generate. It is also the diagnostic: if it persists, the prompt architecture needs revision, not the model.
 
 ---
 
@@ -259,35 +256,45 @@ All three: **yes.** And every design decision maps to a requirement the FF Agent
 
 ---
 
+### The ask
+
+Three decisions to make from this review:
+
+1. **Ship v0.2?** — 10–15 creator research sessions + mood tags + Style Brief PDF. Validates whether behavioral memory feels accurate by session 5 with real professionals. Low cost, high signal.
+2. **Fund the Canva SDK integration (v0.3)?** — 265M MAU, public API, zero gatekeeping. The distribution unlock. Requires engineering allocation, no Adobe partnership needed.
+3. **Commission the FF Agentic harness reference design (v0.5)?** — Every architectural decision in Stil maps to a harness requirement. This prototype de-risks the harness build. Requires alignment with the FF Agentic team on scope and timeline.
+
+---
+
 ## 12. What ships next
 
-### v0.2 — Validate and deepen *(Next, ~6 weeks)*
+### v0.2 — Validate and deepen *(Jun–Jul 2026)*
 | What | Why | Success signal |
 |---|---|---|
-| Mood tags on style profile | Creators articulate tone (editorial, warm lifestyle, dark moody) — fills the gap between tool calls and aesthetic intent | >60% of users tag their profile within 3 sessions |
-| Session comparison view | Side-by-side before/after across sessions — makes the memory *visible* to the creator | Session comparison opened in >40% of active users |
-| Style Brief PDF export | Shareable aesthetic document (creator → client, creator → social team) | **PLG hook** — 20%+ share rate; organic distribution in agency workflows |
-| Shared team profiles | One creator's profile → accessible to a team → org-level adoption | First team accounts created |
-| 10–15 creator research sessions | Validate memory accuracy claims with real creative professionals | Qual finding: does behavioral memory feel accurate by session 5? |
+| Mood tags on style profile | Fills the gap between tool calls and aesthetic intent — "editorial," "warm lifestyle," "dark moody" | >60% of users tag within 3 sessions |
+| Session comparison view | Makes memory *visible* — side-by-side before/after across sessions builds trust | Opened by >40% of active users |
+| Style Brief PDF export | Creator shares aesthetic brief with clients/social team — **PLG hook** | >20% share rate; organic agency distribution |
+| Shared team profiles | One creator's profile → team → org-level adoption | First team accounts created |
+| 10–15 creator research sessions | Validate memory accuracy with real professionals | Does behavioral memory feel accurate by session 5? |
 
-### v0.3 — Distribution unlock *(~3 months)*
+### v0.3 — Distribution unlock *(Aug–Sep 2026)*
 | What | Why | Success signal |
 |---|---|---|
 | Canva Apps SDK integration | 265M MAU, public API, zero gatekeeping — largest PLG surface available | First 1,000 Canva-sourced activations |
-| Style profile portability API | Allow Stil profile to be read by any tool (Firefly, CapCut, etc.) | First third-party integration |
-| Mobile-first session flow | Creators edit on mobile; Streamlit desktop is a demo constraint | Session start rate on mobile >30% |
+| Style profile portability API | Stil profile readable by Firefly, CapCut, any tool | First third-party integration live |
+| Mobile-first session flow | Creators edit on mobile; Streamlit is a demo constraint | Mobile session starts >30% |
 
-### v0.4 — Expand the canvas *(~6 months)*
+### v0.4 — Expand the canvas *(Q1 2027)*
 | What | Why | Success signal |
 |---|---|---|
-| Video workflow memory | Short-form video is the primary creator format; behavioral memory should extend to frame rate, caption style, transition preferences | First video-specific style profiles created |
-| Shared team memory | Agency teams need a shared aesthetic layer — not just individual profiles | First agency team onboarded |
-| Feed Cohesion Score benchmark | Creator can compare their score to creators in their category | Benchmark data published |
+| Video workflow memory | Short-form video is the primary format; memory extends to frame rate, caption style, transitions | First video-specific style profiles created |
+| Shared team memory | Agency teams need a shared aesthetic layer, not just individual profiles | First agency team onboarded |
+| Feed Cohesion Score benchmarks | Creator compares their score to others in their category | Benchmark data published |
 
-### v0.5 — Strategic *(Adobe-dependent)*
+### v0.5 — Strategic *(Adobe-dependent, Q2 2027)*
 | What | Why |
 |---|---|
-| Stil memory/eval architecture as reference design for FF Agentic harness | Every architectural decision in Stil maps to a harness requirement — behavioral memory priority, intent grading, RAG eval infra. This is the prototype that de-risks the harness build. |
+| Stil architecture as FF Agentic harness reference design | Every decision in Stil maps to a harness requirement — behavioral memory priority rules, intent grading, RAG eval infra. The prototype that de-risks the harness build. |
 
 ---
 
