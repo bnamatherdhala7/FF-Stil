@@ -229,9 +229,10 @@ def normalize_to_targets(
         factor = min(3.0, max(0.2, target_brightness / current_brightness))
         img = ImageEnhance.Brightness(img).enhance(factor)
 
-    # Contrast
-    current_contrast = max(m["contrast"], 1.0)
-    if abs(current_contrast - target_contrast) > 3:
+    # Contrast — re-measure after brightness adjustment since brightening changes stddev
+    _tmp = img.resize((100, 100), Image.LANCZOS).convert("L")
+    current_contrast = max(ImageStat.Stat(_tmp).stddev[0], 1.0)
+    if abs(current_contrast - target_contrast) > 2:
         factor = min(3.0, max(0.2, target_contrast / current_contrast))
         img = ImageEnhance.Contrast(img).enhance(factor)
 
