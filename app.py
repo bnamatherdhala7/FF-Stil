@@ -1700,7 +1700,9 @@ def tab_feed():
         )
         feed_files = st.file_uploader(
             "Upload feed photos", type=["jpg", "jpeg", "png", "webp"],
-            accept_multiple_files=True, key="feed_upload", label_visibility="collapsed",
+            accept_multiple_files=True,
+            key=f"feed_upload_{st.session_state.feed_upload_key}",
+            label_visibility="collapsed",
         )
         if feed_files:
             n = len(feed_files)
@@ -1720,13 +1722,28 @@ def tab_feed():
                         unsafe_allow_html=True
                     )
 
-        if feed_files and st.button("Analyze feed", type="primary", key="analyze_feed"):
+        btn_col1, btn_col2 = st.columns([2, 1])
+        with btn_col1:
+            analyze_clicked = feed_files and st.button("Analyze feed", type="primary", key="analyze_feed")
+        with btn_col2:
+            if st.session_state.get("cohesion_result") and st.button("↺ Reset", key="reset_feed"):
+                st.session_state.cohesion_result = None
+                st.session_state.feed_image_bytes = None
+                st.session_state.feed_filenames = None
+                st.session_state.feed_styled_bytes = None
+                st.session_state.feed_upload_key += 1
+                st.rerun()
+
+        if analyze_clicked:
             with st.spinner("Measuring cohesion…"):
                 image_bytes_list, filenames = [], []
                 for f in feed_files:
                     f.seek(0)
                     image_bytes_list.append(f.read())
                     filenames.append(f.name)
+                st.session_state.feed_image_bytes = image_bytes_list
+                st.session_state.feed_filenames = filenames
+                st.session_state.feed_styled_bytes = None
                 st.session_state.cohesion_result = analyze_feed(image_bytes_list, filenames)
 
         result = st.session_state.get("cohesion_result")
@@ -1798,13 +1815,69 @@ def tab_feed():
                     unsafe_allow_html=True
                 )
 
+            # ── Apply my style to all photos ──────────────────────────────
+            stored_bytes = st.session_state.get("feed_image_bytes")
+            stored_names = st.session_state.get("feed_filenames", [])
+            style = load_style()
+            choices = (style.get("choices_log") or [{}])[0]
+            has_style = bool(choices.get("filter") or choices.get("brightness") or choices.get("contrast"))
+
+            if score < 75 and stored_bytes and has_style:
+                st.markdown("<div style='height:0.75rem'></div>", unsafe_allow_html=True)
+                st.markdown(
+                    '<div style="background:linear-gradient(135deg,#EDE8FF,#F0FFF4);'
+                    'border:1px solid #C4B5FD;border-radius:12px;padding:0.85rem 1rem;'
+                    'margin-bottom:0.75rem;">'
+                    '<div style="font-size:12px;font-weight:600;color:#4C1D95;margin-bottom:3px;">'
+                    '✦ Your style profile can fix this</div>'
+                    '<div style="font-size:11px;color:#5A5A78;">Apply your saved editing style to '
+                    'every photo at once and re-measure consistency.</div>'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+                if st.button("✦ Apply my style to all photos", type="primary", key="apply_style_feed"):
+                    with st.spinner("Applying your style to all photos…"):
+                        tool_trace = []
+                        if choices.get("filter"):
+                            tool_trace.append({"tool": "apply_filter",
+                                               "input": {"filename": "x", "filter_type": choices["filter"]},
+                                               "result": {}})
+                        if choices.get("brightness"):
+                            tool_trace.append({"tool": "adjust_brightness",
+                                               "input": {"filename": "x", "level": int(choices["brightness"])},
+                                               "result": {}})
+                        if choices.get("contrast"):
+                            tool_trace.append({"tool": "adjust_contrast",
+                                               "input": {"filename": "x", "level": int(choices["contrast"])},
+                                               "result": {}})
+                        styled = [preview_edits(b, tool_trace) or b for b in stored_bytes]
+                        st.session_state.feed_styled_bytes = styled
+                        new_result = analyze_feed(styled, stored_names)
+                        st.session_state.cohesion_result = new_result
+                    st.rerun()
+
+            styled_bytes = st.session_state.get("feed_styled_bytes")
+            if styled_bytes and stored_bytes:
+                st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+                st.markdown(_section_label("Before → After (style applied to all)"), unsafe_allow_html=True)
+                n_show = min(len(stored_bytes), len(styled_bytes), 6)
+                for i in range(n_show):
+                    b_col, a_col = st.columns(2, gap="small")
+                    with b_col:
+                        st.image(stored_bytes[i], use_container_width=True,
+                                 caption=f"Before · {stored_names[i][:20] if stored_names else ''}")
+                    with a_col:
+                        st.image(styled_bytes[i], use_container_width=True,
+                                 caption="After · style applied")
+                    st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
+
             if result.get("per_image_metrics"):
                 with st.expander("Per-photo breakdown"):
                     df = pd.DataFrame(result["per_image_metrics"])
                     df.columns = [c.replace("_", " ").capitalize() for c in df.columns]
                     st.dataframe(df, use_container_width=True, hide_index=True)
 
-        elif not feed_files:
+        elif not feed_files and not st.session_state.get("cohesion_result"):
             _empty_state("◎", "No photos uploaded",
                          "Upload 3 or more photos from your feed to measure consistency.")
 
@@ -1951,7 +2024,9 @@ def main():
     )
 
     for key, default in [("cohesion_result", None), ("transfer_result", None),
-                          ("eval_result", None), ("all_previews", [])]:
+                          ("eval_result", None), ("all_previews", []),
+                          ("feed_image_bytes", None), ("feed_filenames", None),
+                          ("feed_styled_bytes", None), ("feed_upload_key", 0)]:
         if key not in st.session_state:
             st.session_state[key] = default
 
