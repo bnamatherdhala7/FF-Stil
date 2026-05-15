@@ -298,6 +298,34 @@ Three decisions to make from this review:
 
 ---
 
+## 13. Next pain points to solve — research findings
+
+Validated from Reddit, YouTube, creator research reports, and agency handoff studies. Ranked by signal strength.
+
+| # | Pain point | Signal | Key stat | Gap |
+|---|---|---|---|---|
+| 1 | **Caption / copy workflow** | HIGH | 30%+ photographers now use AI for copy; 15 hrs/month estimated; some stop posting because of it | AI caption tools exist but are stateless — no voice memory across sessions |
+| 2 | **Cross-platform tone adaptation** | HIGH | Repurposing manually costs more time than creating from scratch; 3–5 hrs per quality post | Resizing tools solve format. Hook rewriting, tone-shifting, hashtag strategy — unsolved |
+| 3 | **Brand voice inconsistency (written)** | HIGH | <10% of creators achieve consistent written voice; 77–81% struggle | No persistent voice profile across sessions or tools. Same drift problem as visual style |
+| 4 | **Content calendar cognitive overhead** | HIGH | 64% abandon content calendars within 14 days; 91% struggle with consistency | Scheduling tools solve publishing, not planning — "what to post when" has no AI layer |
+| 5 | **Trend responsiveness pressure** | HIGH | 68% cite algorithmic pressure as major stressor; 78% say algorithm dictates what they create | No tool helps a creator evaluate whether a trend fits their identity before they chase it |
+| 6 | **Collaboration / handoffs** | MED-HIGH | Freelancers take weeks to onboard to a brand voice; feedback loops break across Slack threads | No portable style profile format. A `style_profile.json` + `voice_profile.json` solves this as a by-product |
+| 7 | **Analytics → creative feedback loop** | MED | 72% track metrics; 0% of tools connect creative inputs (filter, tone, crop) to performance outputs | Zero tools attribute saves/shares to specific aesthetic choices — the correlation is invisible |
+
+### What this means for the roadmap
+
+**Written voice memory is the highest-confidence next capability.** The exact architecture Stil uses for visual style (extract → persist → inject) maps directly to caption tone. A `voice_profile.json` alongside `style_profile.json` solves Pain Points 1 and 3 with no new infrastructure.
+
+> *"Reading it feels like watching a stranger wear your favourite jumper."* — Amelie Pollak copywriting blog, on AI copy that doesn't sound like the creator
+
+**Cross-platform output** falls out naturally: "adapt this for LinkedIn" applies a different register from the voice profile but still sounds like them. Addresses Pain Point 2 without building a publishing tool.
+
+**Handoff artifact:** `style_profile.json` + `voice_profile.json` = a portable creative brief a freelancer or agency can import on day one. Pain Point 6 solved as a by-product of what's already built.
+
+**Analytics bridge (v0.4):** Session logs already tag which aesthetic choices were made per session. Connecting those to platform performance via API closes Pain Point 7 — and makes the creative intent trend chart even more powerful.
+
+---
+
 *Full architecture and feature spec: [PRD.md](PRD.md)*
 *Workflow diagrams (eval pipeline + style injection): [WORKFLOW_DIAGRAMS.md](WORKFLOW_DIAGRAMS.md)*
 *Competitive benchmarking: [COMPETITORS.md](COMPETITORS.md)*
