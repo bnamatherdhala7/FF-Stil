@@ -39,41 +39,66 @@ This creates a compounding second problem: **visual drift**. Post 1 looks exactl
 
 ## 3. What creators are actually saying
 
-> *"I've told every AI tool I like warm tones. None of them remember."*
-— Creator interview, recurring verbatim
+These are not synthesized themes. These are verbatim.
 
-> *"Every time you start a new conversation with AI, it forgets everything. You're constantly re-explaining your brand, re-correcting the same mistakes, getting inconsistent output."*
-— Creator productivity research, 2025
+> *"With presets, you almost always have to make adjustments to each individual image. It's like trying to bake a cake with a muffin recipe."*
+— Samanta Katz, photographer and educator *(samantakatz.com)*
 
-> *"We spend more time editing AI content to match our voice than it would take to write from scratch. We keep making the same edits over and over because the AI doesn't learn."*
-— Creator brand consistency research, 2025
+> *"Presets are consistent. Your photos are not."*
+— Lou Marks Presets *(loumarkspresets.com)*
 
-> *"I only notice my feed is inconsistent six months later, when I scroll back."*
-— Creator interview
+> *"8–10 hours staring at a screen, culling every single wedding. 15+ hours slowly editing each gallery. It was sucking the joy right out of my passion. Last year, I came very close to quitting wedding photography."*
+— Ignatios Kourouvasilis, wedding photographer *(ignatioskourouvasilis.com)*
 
-> *"That preset makes your indoor portrait look orange. You end up spending more time tweaking sliders than if you'd just started from scratch."*
-— Lightroom community
+> *"I was paying $300 a month to get my photos 70% edited."*
+— Looyenga Photography, on Imagen AI *(looyengaphotography.com)*
 
-The phrase **"starting from scratch"** appears verbatim across AI tool reviews, Lightroom forums, and social media strategy content. It is the single word creators use to describe this experience. "Stateless" has entered mainstream creator discourse as the named cause.
+> *"The LLM only knows what you tell it — in that specific conversation."*
+— Teresa Torres, ProductTalk.org, on stateless AI
+
+> *"Your Instagram feed looks like it belongs to three different companies."*
+— InvokeMedia *(invokemedia.co.uk)*
+
+**The number behind the frustration:** 83% of users report having to repeat context to AI agents across sessions. 33% name it their single most frustrating AI experience. *(MemMachine AI, industry survey 2025)*
+
+**43% of brands** say it is "incredibly difficult" to maintain visual consistency across platforms — and most don't notice the drift until they scroll back six months. *(Jennifer Zmuda, visual content research 2025)*
+
+The word that appears verbatim across Lightroom forums, AI tool reviews, and creator communities: **"starting from scratch."** Not slow. Not expensive. Starting from scratch — every single time.
 
 ---
 
-## 4. Current solutions — and why they fail
+## 4. What exists today — and the gap Adobe has not closed
 
-| | Lightroom presets | Imagen AI / Aftershoot | ChatGPT / Claude Memory | Adobe Brand Kits | **Stil** |
-|---|---|---|---|---|---|
-| Learns from | Nothing | 2,500–5,000 past photos | What you *say* | What you configure | What you *do* (tool calls) |
-| Works from session 1 | No | No — needs training | Yes but stateless | Yes but manual | **Yes** |
-| Updates when behavior changes | No | No | No — you re-brief | No — you re-brief | **Yes — automatically** |
-| Detects feed drift | No | No | No | No | **Feed Cohesion Score** |
-| Grades creative intent | No | No | No | No | **Per session, trend chart** |
-| Conversational | No | No | Yes | No | **Yes** |
+### The competitive landscape
 
-**Why memory features don't close this gap:**
+| | Lightroom presets | Imagen AI / Aftershoot | ChatGPT / Claude Memory | Adobe Express Brand Kit | Canva Brand Kit | **Stil** |
+|---|---|---|---|---|---|---|
+| **Learns from** | Nothing | 2,500–5,000 past photos | What you *say* | What you *upload* | What you *upload* | What you ***do*** (tool calls) |
+| **Works from session 1** | No — manual preset | No — needs training library | Yes — but stateless text | No — manual setup | No — manual setup | **Yes — automatically** |
+| **Updates when behavior changes** | No | No — retrain quarterly | No — you re-brief | No — you reconfigure | No — you reconfigure | **Yes — after every session** |
+| **Conversational interface** | No | No | Yes — no editing tools | No | No | **Yes** |
+| **Detects feed drift** | No | No | No | No | No | **Feed Cohesion Score** |
+| **Grades creative intent** | No | No | No | No | No | **Per session, trend chart** |
+| **Individual creator pricing** | $19.99/mo | $0.05/photo or $59–199/mo | $20/mo (no editing) | $9.99/mo (no learning) | $15/mo (no learning) | **$15/mo target** |
+| **Platform portability** | Adobe only | Lightroom only | No editing tools | Adobe only | Canva only | **Cross-tool** |
 
-Every major AI platform ships memory now — ChatGPT Memories, Claude Projects, Notion AI. These are real features. But they store *declarations*: "user likes warm filters." Declarations freeze. When you've been using cool tones for 20 sessions because of a winter campaign, the memory still confidently says warm. Nothing fired. The drift happened invisibly.
+### Why each existing solution fails
 
-The deeper problem: **every memory system built on declarations requires the creator to manage the memory as a second job** — tracking what changed, updating preferences manually, catching the moments when stated preference and actual behavior diverged. That overhead is invisible in any usage metric, but it erodes exactly the trust you are trying to build.
+**Lightroom presets** are static parameter files — saved slider values, not behavioral intelligence. They do not adapt, do not update, and do not travel. 74% of professional photographers depend on Lightroom, yet every session still starts from zero unless they manually select a preset. Adobe's own answer to style memory is a manual step.
+
+**Imagen AI and Aftershoot** have the deepest style learning in the market. But they require 2,000–5,000 previously edited photos before the AI is useful. Looyenga Photography was paying $300/month for 70% accuracy. The onboarding cost alone is the product's biggest user complaint — and neither system is conversational.
+
+**ChatGPT Memory and Claude Projects** store what you *say*, not what you *do*. If a creator edits warm and crops square in every session without mentioning it, those patterns are never captured. Memory cap: ~1,200 words. No editing tools. No execution. They can describe how to edit a photo — they cannot perform the edit.
+
+**Adobe Express Brand Kit and Canva Brand Kit** are manual declaration systems. The creator uploads a logo, selects brand colors, chooses a font. Nothing is observed. A creator who edits the same way in 200 sessions has not trained either system at all. Canva has 265 million MAU. None of them have behavioral style memory.
+
+### The declaration trap — why "memory features" don't close this gap
+
+Every major AI platform ships memory now. These are real features. But they store *declarations*: "user likes warm filters." Declarations freeze. When a creator has been using cool tones for 20 sessions for a winter campaign, the memory still confidently says warm. Nothing fired. The drift happened invisibly.
+
+**The deeper problem:** every memory system built on declarations requires the creator to manage their memory as a second job — tracking what changed, updating preferences manually, catching the moments when stated preference and actual behavior diverged. That overhead is invisible in any usage metric, and it erodes exactly the trust the system was supposed to build.
+
+**The structural gap Adobe has not closed:** no Adobe product today learns a creator's visual style from observed behavior, updates it automatically, and applies it conversationally — starting from session one, at individual creator pricing, across the Adobe suite.
 
 ---
 
